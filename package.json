@@ -1,6 +1,6 @@
 {
     "name": "crawlbrulee",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "the crawlbrulee CLI. see https://crawlbrulee.com",
     "bin": { 
       "crawlbrulee": "./bin.js" 
