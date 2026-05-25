@@ -1,4 +1,4 @@
 # 🍮 crawlbrulee cli
 
 
-See https://github.com/crawlbrulee-cli for details.
+See https://github.com/crawlbrulee/crawlbrulee-cli.git for details.
