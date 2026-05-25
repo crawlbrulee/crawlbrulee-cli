@@ -1,0 +1,14 @@
+{
+    "name": "crawlbrulee",
+    "version": "1.0.0",
+    "description": "the crawlbrulee CLI. see https://crawlbrulee.com",
+    "bin": { 
+      "crawlbrulee": "./bin.js" 
+    },
+    "license": "MIT",
+    "homepage": "https://crawlbrulee.com",
+    "repository": { 
+      "type": "git", 
+      "url": "git+https://github.com/crawlbrulee/cli.git" 
+    }
+}
