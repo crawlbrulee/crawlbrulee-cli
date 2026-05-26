@@ -1,6 +1,7 @@
 import { writeFile } from 'fs/promises'
 
 import { Crawlbrulee } from '@crawlbrulee/sdk'
+import type { Command } from 'commander'
 
 import { resolveAuth } from '../config/resolve.js'
 import { formatError } from '../output/errors.js'
@@ -42,6 +43,19 @@ export async function runCommand<TResponse>({
   } else {
     process.stdout.write(out)
   }
+}
+
+/**
+ * Append the shared output-format options (`--json` / `--text` / `--compact` /
+ * `-o`) to a command. Returns the same command so it can be chained into
+ * `.action(...)`.
+ */
+export function addFormatOptions(cmd: Command): Command {
+  return cmd
+    .option('--json', 'force JSON output (default when piped)')
+    .option('--text', 'force human-readable output (default in a terminal)')
+    .option('--compact', 'one-line JSON (only meaningful with --json)')
+    .option('-o, --output <file>', 'write the output to <file> instead of stdout')
 }
 
 export function withErrorHandler<TArgs extends unknown[]>(

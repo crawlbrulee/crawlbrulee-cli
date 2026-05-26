@@ -2,7 +2,7 @@ import { password } from '@inquirer/prompts'
 import type { Command } from 'commander'
 
 import { clearConfig, readConfig, writeConfig } from '../config/store.js'
-import { DEFAULT_API_URL } from '../config/resolve.js'
+import { DEFAULT_API_URL, ENV_API_KEY, ENV_API_URL } from '../config/resolve.js'
 import { maskApiKey } from '../output/mask.js'
 
 interface LoginOptions {
@@ -48,7 +48,7 @@ export function registerAuthCommands(program: Command): void {
       process.stdout.write(`api_url: ${apiUrl}\n`)
       process.stdout.write(`api_key: ${apiKey}\n`)
 
-      for (const name of ['CRAWLBRULEE_API_KEY', 'CRAWLBRULEE_API_URL']) {
+      for (const name of [ENV_API_KEY, ENV_API_URL]) {
         if (process.env[name]) {
           process.stdout.write(`# $${name} is set in the environment — overrides config file\n`)
         }

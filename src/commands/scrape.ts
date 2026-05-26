@@ -1,10 +1,11 @@
-import type { ProxyTier, ScrapeRequest } from '@crawlbrulee/sdk'
+import type { ScrapeRequest } from '@crawlbrulee/sdk'
 import type { Command } from 'commander'
 
 import { renderScrapeText } from '../output/render-scrape.js'
 import { parseNonNegativeInt } from '../parsers/integers.js'
+import { parseProxy } from '../parsers/proxy.js'
 import { parseScreenshotFlag } from '../parsers/screenshot.js'
-import { runCommand, withErrorHandler, type CommonOptions } from './runner.js'
+import { addFormatOptions, runCommand, withErrorHandler, type CommonOptions } from './runner.js'
 
 export interface ScrapeOptions extends CommonOptions {
   markdown?: boolean
@@ -26,7 +27,7 @@ export interface ScrapeOptions extends CommonOptions {
 }
 
 export function registerScrapeCommand(program: Command): void {
-  program
+  const cmd = program
     .command('scrape <url>')
     .description('Scrape a URL via the crawlbrulee API')
     .option('-k, --api-key <key>', 'API key (overrides config + env)')
@@ -46,11 +47,6 @@ export function registerScrapeCommand(program: Command): void {
     .option('--all', 'extract every content type at once')
     .option('--no-metadata', 'omit page metadata from the response')
 
-    .option('--json', 'force JSON output (default when piped)')
-    .option('--text', 'force human-readable output (default in a terminal)')
-    .option('--compact', 'one-line JSON (only meaningful with --json)')
-    .option('-o, --output <file>', 'write the output to <file> instead of stdout')
-
     .option('--proxy <tier>', 'proxy tier: basic | advanced | auto | none')
     .option('--require-js', 'render with a headless browser')
     .option('--exclude-selectors <csv>', 'CSS selectors to strip, comma-separated')
@@ -59,7 +55,7 @@ export function registerScrapeCommand(program: Command): void {
     .option('--locale <bcp47>', 'BCP-47 locale tag (e.g. en-US)')
     .option('--country <iso>', 'ISO 3166-1 alpha-2 country code (e.g. US)')
 
-    .action(withErrorHandler(runScrape))
+  addFormatOptions(cmd).action(withErrorHandler(runScrape))
 }
 
 export function runScrape(url: string, opts: ScrapeOptions): Promise<void> {
@@ -100,7 +96,7 @@ export function buildScrapeRequest(url: string, opts: ScrapeOptions): ScrapeRequ
 
   const body: ScrapeRequest = { url, extract }
 
-  if (opts.proxy) body.proxy = opts.proxy as ProxyTier
+  if (opts.proxy) body.proxy = parseProxy(opts.proxy)
   if (opts.requireJs) body.require_js = true
   if (opts.excludeSelectors) {
     const selectors = opts.excludeSelectors

@@ -78,6 +78,12 @@ describe('buildMapRequest — proxy / cache / country', () => {
     expect(buildMapRequest('https://example.com', { proxy: 'advanced' }).proxy).toBe('advanced')
   })
 
+  it('--proxy with an unknown tier throws', () => {
+    expect(() => buildMapRequest('https://example.com', { proxy: 'garbage' })).toThrow(
+      /invalid --proxy 'garbage'/
+    )
+  })
+
   it('--cache-max-age sets cache.max_age', () => {
     expect(buildMapRequest('https://example.com', { cacheMaxAge: '604800' }).cache).toEqual({
       max_age: 604800,

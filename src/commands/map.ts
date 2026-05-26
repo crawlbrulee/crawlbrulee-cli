@@ -1,9 +1,10 @@
-import type { MapRequest, ProxyTier } from '@crawlbrulee/sdk'
+import type { MapRequest } from '@crawlbrulee/sdk'
 import type { Command } from 'commander'
 
 import { renderMapText } from '../output/render-map.js'
 import { parseNonNegativeInt, parsePositiveInt } from '../parsers/integers.js'
-import { runCommand, withErrorHandler, type CommonOptions } from './runner.js'
+import { parseProxy } from '../parsers/proxy.js'
+import { addFormatOptions, runCommand, withErrorHandler, type CommonOptions } from './runner.js'
 
 export interface MapOptions extends CommonOptions {
   limit?: string
@@ -19,7 +20,7 @@ export interface MapOptions extends CommonOptions {
 }
 
 export function registerMapCommand(program: Command): void {
-  program
+  const cmd = program
     .command('map <url>')
     .description('List URLs discovered on a site via the crawlbrulee API')
     .option('-k, --api-key <key>', 'API key (overrides config + env)')
@@ -36,12 +37,7 @@ export function registerMapCommand(program: Command): void {
     .option('--cache-max-age <seconds>', 'cache max age in seconds')
     .option('--country <iso>', 'ISO 3166-1 alpha-2 country code (e.g. US) — proxy egress hint')
 
-    .option('--json', 'force JSON output (default when piped)')
-    .option('--text', 'force human-readable output (default in a terminal)')
-    .option('--compact', 'one-line JSON (only meaningful with --json)')
-    .option('-o, --output <file>', 'write the output to <file> instead of stdout')
-
-    .action(withErrorHandler(runMap))
+  addFormatOptions(cmd).action(withErrorHandler(runMap))
 }
 
 export function runMap(url: string, opts: MapOptions): Promise<void> {
@@ -63,7 +59,7 @@ export function buildMapRequest(url: string, opts: MapOptions): MapRequest {
   if (opts.limit !== undefined) body.limit = parsePositiveInt(opts.limit, '--limit')
   if (opts.page !== undefined) body.page = parsePositiveInt(opts.page, '--page')
   if (opts.sitemapOnly) body.sitemap_only = true
-  if (opts.proxy) body.proxy = opts.proxy as ProxyTier
+  if (opts.proxy) body.proxy = parseProxy(opts.proxy)
   if (opts.country) body.location = { country: opts.country }
 
   if (opts.cacheMaxAge !== undefined) {

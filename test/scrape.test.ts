@@ -90,6 +90,12 @@ describe('buildScrapeRequest — transport flags', () => {
     expect(body.proxy).toBe('advanced')
   })
 
+  it('--proxy with an unknown tier throws', () => {
+    expect(() => buildScrapeRequest('https://example.com', { proxy: 'garbage' })).toThrow(
+      /invalid --proxy 'garbage'/
+    )
+  })
+
   it('--require-js sends require_js=true', () => {
     const body = buildScrapeRequest('https://example.com', { requireJs: true })
     expect(body.require_js).toBe(true)
