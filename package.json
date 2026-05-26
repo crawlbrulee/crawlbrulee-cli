@@ -1,14 +1,65 @@
 {
-    "name": "crawlbrulee",
-    "version": "1.0.2",
-    "description": "the crawlbrulee CLI. see https://crawlbrulee.com",
-    "bin": { 
-      "crawlbrulee": "./bin.js" 
-    },
-    "license": "MIT",
-    "homepage": "https://crawlbrulee.com",
-    "repository": { 
-      "type": "git", 
-      "url": "git+https://github.com/crawlbrulee/crawlbrulee-cli.git" 
-    }
+  "name": "crawlbrulee",
+  "version": "1.1.0",
+  "description": "Official CLI for the crawlbrulee API — scrape, map, and inspect usage from your terminal.",
+  "keywords": [
+    "crawlbrulee",
+    "cli",
+    "scrape",
+    "scraping",
+    "crawler",
+    "web-scraping",
+    "screenshot",
+    "sitemap"
+  ],
+  "homepage": "https://crawlbrulee.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/crawlbrulee/crawlbrulee-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/crawlbrulee/crawlbrulee-cli/issues"
+  },
+  "type": "module",
+  "bin": {
+    "crawlbrulee": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "clean": "rm -rf dist coverage node_modules",
+    "verify": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm build",
+    "prepublishOnly": "pnpm verify"
+  },
+  "dependencies": {
+    "@crawlbrulee/sdk": "^0.1.0",
+    "@inquirer/prompts": "^7.0.0",
+    "commander": "^13.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@types/node": "^22.10.0",
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.20.0",
+    "vitest": "^2.1.0"
+  }
 }

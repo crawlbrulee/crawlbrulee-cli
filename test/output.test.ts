@@ -1,0 +1,197 @@
+import { RateLimitError, UsageAllocationError, ValidationError } from '@crawlbrulee/sdk'
+import { describe, expect, it } from 'vitest'
+
+import { formatError } from '../src/output/errors.js'
+import { renderMapText } from '../src/output/render-map.js'
+import { renderScrapeText } from '../src/output/render-scrape.js'
+import { renderJson, resolveFormatMode } from '../src/output/tty.js'
+
+describe('resolveFormatMode', () => {
+  it('returns text when stdout is a TTY and no overrides', () => {
+    expect(resolveFormatMode({}, { isTTY: true })).toBe('text')
+  })
+
+  it('returns json when stdout is piped and no overrides', () => {
+    expect(resolveFormatMode({}, { isTTY: false })).toBe('json')
+  })
+
+  it('--json forces json even in TTY', () => {
+    expect(resolveFormatMode({ json: true }, { isTTY: true })).toBe('json')
+  })
+
+  it('--text forces text even when piped', () => {
+    expect(resolveFormatMode({ text: true }, { isTTY: false })).toBe('text')
+  })
+})
+
+describe('renderJson', () => {
+  it('pretty-prints by default', () => {
+    expect(renderJson({ a: 1 }, {})).toBe('{\n  "a": 1\n}')
+  })
+
+  it('compact mode omits whitespace', () => {
+    expect(renderJson({ a: 1 }, { compact: true })).toBe('{"a":1}')
+  })
+})
+
+describe('renderScrapeText', () => {
+  it('prints a title header followed by markdown body', () => {
+    const out = renderScrapeText({
+      url: 'https://example.com',
+      markdown: '# Hello\n\nworld',
+      metadata: { title: 'Example Domain' },
+    })
+    expect(out).toBe('## Example Domain\n\n# Hello\n\nworld')
+  })
+
+  it('falls back to cleaned_html when no markdown is present', () => {
+    const out = renderScrapeText({
+      url: 'https://example.com',
+      cleaned_html: '<p>hi</p>',
+    })
+    expect(out).toContain('<p>hi</p>')
+  })
+
+  it('shows the screenshot URL with slice count when sliced', () => {
+    const out = renderScrapeText({
+      url: 'https://example.com',
+      markdown: 'body',
+      screenshot: {
+        url: 'https://cdn/x.png',
+        type: 'full_page',
+        properties: {
+          file_name: 'x.png',
+          mime: 'image/png',
+          width: 1920,
+          height: 5000,
+          viewport: { width: 1920, height: 1080, device_scale_factor: 1 },
+        },
+        slices: [
+          {
+            row_nr: 0,
+            url: 'https://cdn/s0.png',
+            type: 'slice',
+            properties: {
+              file_name: 's0.png',
+              mime: 'image/png',
+              width: 1920,
+              height: 800,
+              viewport: { width: 1920, height: 1080, device_scale_factor: 1 },
+            },
+          },
+        ],
+      },
+    })
+    expect(out).toContain('screenshot: https://cdn/x.png (1 slices)')
+    expect(out).toContain('- https://cdn/s0.png')
+  })
+
+  it('lists links when no body was requested', () => {
+    const out = renderScrapeText({
+      url: 'https://example.com',
+      links: [{ text: 't', href: 'https://a', internal: true }],
+    })
+    expect(out).toContain('https://a')
+  })
+
+  it('appends warnings as comments', () => {
+    const out = renderScrapeText({
+      url: 'https://example.com',
+      markdown: 'body',
+      warnings: ['screenshot_truncated'],
+    })
+    expect(out).toContain('# warning: screenshot_truncated')
+  })
+})
+
+describe('renderMapText', () => {
+  it('prints one URL per line', () => {
+    const out = renderMapText({
+      links: [{ url: 'https://a' }, { url: 'https://b' }],
+      meta: {
+        pagination: { page: 1, limit: 10, total: 2, total_pages: 1, has_more: false },
+        truncation: {
+          storage_capped: false,
+          response_capped: false,
+          total_before_max_urls: 2,
+          total_detected_before_storage_cap: 2,
+        },
+      },
+    })
+    expect(out).toBe('https://a\nhttps://b')
+  })
+
+  it('appends a pagination hint when has_more', () => {
+    const out = renderMapText({
+      links: [{ url: 'https://a' }],
+      meta: {
+        pagination: { page: 1, limit: 1, total: 3, total_pages: 3, has_more: true },
+        truncation: {
+          storage_capped: false,
+          response_capped: false,
+          total_before_max_urls: 3,
+          total_detected_before_storage_cap: 3,
+        },
+      },
+    })
+    expect(out).toContain('… and 2 more (use --page 2)')
+  })
+})
+
+describe('formatError', () => {
+  it('formats a ValidationError with name and message', () => {
+    const err = new ValidationError('bad URL', {
+      status: 400,
+      errorName: 'invalid_url',
+      response: { name: 'invalid_url', message: 'bad URL' },
+    })
+    expect(formatError(err)).toBe('error: invalid_url — bad URL')
+  })
+
+  it('adds a retry hint for too_many_requests when retry_after_ms is present', () => {
+    const err = new RateLimitError('rate limited', {
+      status: 429,
+      details: { error_name: 'too_many_requests', retry_after_ms: 12000 },
+      response: {
+        name: 'too_many_requests',
+        message: 'rate limited',
+        details: { error_name: 'too_many_requests', retry_after_ms: 12000 },
+      },
+    })
+    expect(formatError(err)).toBe('error: too_many_requests — rate limited (retry after 12000ms)')
+  })
+
+  it('adds a reason hint for usage_allocation_error', () => {
+    const err = new UsageAllocationError('out of credits', {
+      status: 429,
+      details: { error_name: 'usage_allocation_error', reason: 'credit_limit' },
+      response: {
+        name: 'usage_allocation_error',
+        message: 'out of credits',
+        details: { error_name: 'usage_allocation_error', reason: 'credit_limit' },
+      },
+    })
+    expect(formatError(err)).toBe(
+      'error: usage_allocation_error — out of credits (reason: credit_limit)'
+    )
+  })
+
+  it('adds an antibot hint for antibot_blocked', () => {
+    const err = new ValidationError('blocked', {
+      status: 403,
+      errorName: 'antibot_blocked',
+      response: { name: 'antibot_blocked', message: 'blocked' },
+    })
+    expect(formatError(err)).toBe(
+      'error: antibot_blocked — blocked (try --proxy advanced or --require-js)'
+    )
+  })
+
+  it('formats a generic Error', () => {
+    expect(formatError(new Error('boom'))).toBe('error: boom')
+  })
+
+  it('formats non-Error values', () => {
+    expect(formatError('weird string')).toBe('error: weird string')
+  })
+})
