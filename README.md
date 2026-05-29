@@ -250,3 +250,9 @@ Tested on Node.js 20+. The CLI bundles to a single ESM entry with a `#!/usr/bin/
 
 - [`@crawlbrulee/sdk`](https://www.npmjs.com/package/@crawlbrulee/sdk) — the TypeScript / JavaScript SDK this CLI wraps.
 - [crawlbrulee MCP server](https://github.com/crawlbrulee/crawlbrulee-mcp) — exposes the API as MCP tools for AI agents (uses the SDK).
+
+---
+
+## License
+
+[AGPL-3.0-only](./LICENSE)
