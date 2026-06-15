@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@crawlbrulee/sdk':
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: ^0.3.0
+        version: 0.3.0
       '@inquirer/prompts':
         specifier: ^7.0.0
         version: 7.10.1(@types/node@22.19.19)
@@ -45,9 +45,9 @@ importers:
 
 packages:
 
-  '@crawlbrulee/sdk@0.1.0':
-    resolution: {integrity: sha512-yuBPqxee+x63SARFU8Ln0MJ+Jf+wxnl2IrIBSqLArSRGnUeI73H2kQhti4zBP0E2C6wELkiJ0F6o7ksB8DA84A==}
-    engines: {node: '>=20'}
+  '@crawlbrulee/sdk@0.3.0':
+    resolution: {integrity: sha512-B8JFkRtQ1L1CBL1hsJHwXj6oaM2w5fFxjACIWoqTJvzWqIuZN8e5iahj6witLL99PI87b2++/Jb8rL2qJ66XBA==}
+    engines: {node: '>=22'}
 
   '@esbuild/aix-ppc64@0.21.5':
     resolution: {integrity: sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ==}
@@ -1474,7 +1474,7 @@ packages:
 
 snapshots:
 
-  '@crawlbrulee/sdk@0.1.0': {}
+  '@crawlbrulee/sdk@0.3.0': {}
 
   '@esbuild/aix-ppc64@0.21.5':
     optional: true

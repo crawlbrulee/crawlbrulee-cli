@@ -111,9 +111,41 @@ crawlbrulee scrape https://x.com -ss full,1280,720,desktop,800   # sliced
 --exclude-selectors "nav,footer"     CSS selectors stripped from the result
 --cache-max-age 86400                cache cutoff in seconds
 --locale en-US                       BCP-47 locale (Accept-Language + navigator.language)
---country US                         ISO 3166-1 alpha-2 country code
+--country US                         ISO 3166-1 alpha-2 country code (eu / europe also accepted)
 -o, --output <file>                  write to a file instead of stdout
 ```
+
+**Async (fire-and-forget) scrape**
+
+Submit the scrape as a background job and get a `job_id` back immediately instead of
+holding the connection open until the page is ready. Good for heavy JS rendering or
+long-page screenshots. The CLI does **not** poll or wait — it prints the `job_id` and exits.
+
+```
+--async                              submit a background job; print the job_id and exit
+--webhook-url <url>                  completion webhook endpoint (requires --async)
+--webhook-metadata <json>            JSON object echoed back in the webhook (requires --webhook-url)
+```
+
+```bash
+# submit and get a job id (text mode shows `job_id: <id>`)
+crawlbrulee scrape https://example.com --async
+# job_id: job_abc123
+
+# get the job id as JSON for scripting
+crawlbrulee scrape https://example.com --async --json | jq -r .job_id
+
+# be notified when the job finishes, with correlation metadata echoed back
+crawlbrulee scrape https://example.com --async \
+  --webhook-url https://hooks.example.com/crawlbrulee \
+  --webhook-metadata '{"order":"abc","attempt":2}'
+```
+
+The webhook is delivered as a single signed `scrape.complete` POST when the job reaches a
+terminal state; `--webhook-metadata` must be a JSON **object** and is returned verbatim in
+the webhook payload's `data.metadata`. Configure the signing secret in the dashboard
+(Account → Webhooks). `--webhook-url`/`--webhook-metadata` require `--async`, and
+`--webhook-metadata` requires `--webhook-url`; invalid JSON fails with a clear error.
 
 ### `crawlbrulee map <url>`
 
@@ -129,18 +161,18 @@ crawlbrulee map https://example.com --country DE
 crawlbrulee map https://example.com -o links.txt
 ```
 
-| Flag                    | Effect                                           |
-| ----------------------- | ------------------------------------------------ |
-| `--limit <n>`           | URLs per page (API max 10000)                    |
-| `--page <n>`            | page number (1-indexed)                          |
-| `--sitemap-only`        | skip homepage extraction, use `sitemap.xml` only |
-| `--internal-only`       | same-domain links only                           |
-| `--external-only`       | external-domain links only                       |
-| `--no-subdomains`       | exclude subdomains from internal results         |
-| `--proxy <tier>`        | `basic` \| `advanced` \| `auto` \| `none`        |
-| `--cache-max-age <sec>` | cache cutoff in seconds                          |
-| `--country <iso>`       | ISO 3166-1 alpha-2 country — proxy egress hint   |
-| `-o, --output <file>`   | write to a file instead of stdout                |
+| Flag                    | Effect                                                                     |
+| ----------------------- | -------------------------------------------------------------------------- |
+| `--limit <n>`           | URLs per page (API max 10000)                                              |
+| `--page <n>`            | page number (1-indexed)                                                    |
+| `--sitemap-only`        | skip homepage extraction, use `sitemap.xml` only                           |
+| `--internal-only`       | same-domain links only                                                     |
+| `--external-only`       | external-domain links only                                                 |
+| `--no-subdomains`       | exclude subdomains from internal results                                   |
+| `--proxy <tier>`        | `basic` \| `advanced` \| `auto` \| `none`                                  |
+| `--cache-max-age <sec>` | cache cutoff in seconds                                                    |
+| `--country <iso>`       | ISO 3166-1 alpha-2 country — proxy egress hint (eu / europe also accepted) |
+| `-o, --output <file>`   | write to a file instead of stdout                                          |
 
 ### `crawlbrulee usage`
 

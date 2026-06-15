@@ -1,4 +1,8 @@
-import type { ScrapeResponse } from '@crawlbrulee/sdk'
+import type { AsyncScrapeResponse, ScrapeResponse } from '@crawlbrulee/sdk'
+
+export function renderAsyncScrapeText(res: AsyncScrapeResponse): string {
+  return `job_id: ${res.job_id}`
+}
 
 export function renderScrapeText(res: ScrapeResponse): string {
   const lines: string[] = []

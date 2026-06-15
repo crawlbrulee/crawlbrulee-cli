@@ -1,2 +1,2 @@
 /** Single source of truth for the CLI version string. Kept in sync with package.json. */
-export const CLI_VERSION = '1.1.0'
+export const CLI_VERSION = '1.2.0'

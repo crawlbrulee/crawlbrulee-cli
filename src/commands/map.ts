@@ -35,7 +35,10 @@ export function registerMapCommand(program: Command): void {
 
     .option('--proxy <tier>', 'proxy tier: basic | advanced | auto | none')
     .option('--cache-max-age <seconds>', 'cache max age in seconds')
-    .option('--country <iso>', 'ISO 3166-1 alpha-2 country code (e.g. US) — proxy egress hint')
+    .option(
+      '--country <iso>',
+      "ISO 3166-1 alpha-2 country code (e.g. US) — proxy egress hint; 'eu' / 'europe' also accepted"
+    )
 
   addFormatOptions(cmd).action(withErrorHandler(runMap))
 }

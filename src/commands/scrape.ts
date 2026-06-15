@@ -1,7 +1,7 @@
-import type { ScrapeRequest } from '@crawlbrulee/sdk'
+import type { AsyncScrapeRequest, AsyncScrapeWebhook, ScrapeRequest } from '@crawlbrulee/sdk'
 import type { Command } from 'commander'
 
-import { renderScrapeText } from '../output/render-scrape.js'
+import { renderAsyncScrapeText, renderScrapeText } from '../output/render-scrape.js'
 import { parseNonNegativeInt } from '../parsers/integers.js'
 import { parseProxy } from '../parsers/proxy.js'
 import { parseScreenshotFlag } from '../parsers/screenshot.js'
@@ -24,6 +24,10 @@ export interface ScrapeOptions extends CommonOptions {
 
   locale?: string
   country?: string
+
+  async?: boolean
+  webhookUrl?: string
+  webhookMetadata?: string
 }
 
 export function registerScrapeCommand(program: Command): void {
@@ -53,12 +57,45 @@ export function registerScrapeCommand(program: Command): void {
     .option('--cache-max-age <seconds>', 'cache max age in seconds')
 
     .option('--locale <bcp47>', 'BCP-47 locale tag (e.g. en-US)')
-    .option('--country <iso>', 'ISO 3166-1 alpha-2 country code (e.g. US)')
+    .option(
+      '--country <iso>',
+      "ISO 3166-1 alpha-2 country code (e.g. US); 'eu' / 'europe' also accepted"
+    )
+
+    .option(
+      '--async',
+      'submit a background job and print its job_id (does not wait for the result)'
+    )
+    .option(
+      '--webhook-url <url>',
+      'completion webhook endpoint, called when the job finishes (requires --async)'
+    )
+    .option(
+      '--webhook-metadata <json>',
+      'JSON object echoed back in the webhook payload (requires --webhook-url)'
+    )
 
   addFormatOptions(cmd).action(withErrorHandler(runScrape))
 }
 
-export function runScrape(url: string, opts: ScrapeOptions): Promise<void> {
+export async function runScrape(url: string, opts: ScrapeOptions): Promise<void> {
+  if (opts.async) {
+    const body = buildAsyncScrapeRequest(url, opts)
+    return runCommand({
+      opts,
+      call: client => client.scrapeAsync(body),
+      renderText: renderAsyncScrapeText,
+    })
+  }
+
+  // The webhook flags are async-only — flag them rather than silently dropping.
+  if (opts.webhookUrl !== undefined) {
+    throw new Error('--webhook-url requires --async')
+  }
+  if (opts.webhookMetadata !== undefined) {
+    throw new Error('--webhook-metadata requires --async')
+  }
+
   const body = buildScrapeRequest(url, opts)
   return runCommand({
     opts,
@@ -116,4 +153,36 @@ export function buildScrapeRequest(url: string, opts: ScrapeOptions): ScrapeRequ
   }
 
   return body
+}
+
+export function buildAsyncScrapeRequest(url: string, opts: ScrapeOptions): AsyncScrapeRequest {
+  // --webhook-metadata only makes sense alongside a webhook URL.
+  if (opts.webhookMetadata !== undefined && opts.webhookUrl === undefined) {
+    throw new Error('--webhook-metadata requires --webhook-url')
+  }
+
+  const body: AsyncScrapeRequest = buildScrapeRequest(url, opts)
+
+  if (opts.webhookUrl !== undefined) {
+    const webhook: AsyncScrapeWebhook = { url: opts.webhookUrl }
+    if (opts.webhookMetadata !== undefined) {
+      webhook.metadata = parseWebhookMetadata(opts.webhookMetadata)
+    }
+    body.webhook = webhook
+  }
+
+  return body
+}
+
+function parseWebhookMetadata(raw: string): Record<string, unknown> {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    throw new Error(`invalid --webhook-metadata '${raw}' (must be valid JSON)`)
+  }
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(`invalid --webhook-metadata '${raw}' (must be a JSON object)`)
+  }
+  return parsed as Record<string, unknown>
 }
