@@ -63,6 +63,13 @@ crawlbrulee scrape https://example.com --proxy advanced --require-js
 crawlbrulee scrape https://example.com -o out.json
 ```
 
+Every scrape response carries a `response_meta.usage` envelope — `{ credits, proxy, cache_hit }` — where
+`credits` is what the call cost (`0` on a cache hit), `proxy` is the **resolved** tier actually
+used (`none` | `basic` | `advanced`, never `auto`), and `cache_hit` says whether the result came
+from cache. In text mode this is printed as a trailing comment, e.g.
+`# usage: 3 credits · proxy advanced · cache_hit false`; in JSON it's the `response_meta.usage` object.
+Page metadata (title, OG/Twitter tags, etc.) is returned under `metadata`.
+
 **Extract toggles** — pick one or more; if any are given they replace the default.
 
 | Flag             | Short | Effect                                  |
@@ -173,6 +180,9 @@ crawlbrulee map https://example.com -o links.txt
 | `--cache-max-age <sec>` | cache cutoff in seconds                                                    |
 | `--country <iso>`       | ISO 3166-1 alpha-2 country — proxy egress hint (eu / europe also accepted) |
 | `-o, --output <file>`   | write to a file instead of stdout                                          |
+
+The map response's `response_meta` carries the same `usage` envelope (`{ credits, proxy, cache_hit }`)
+alongside its `pagination`/`truncation` blocks; text mode appends it as a `# usage: …` comment.
 
 ### `crawlbrulee usage`
 

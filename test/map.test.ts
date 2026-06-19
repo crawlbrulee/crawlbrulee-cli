@@ -120,7 +120,7 @@ describe('runMap (end-to-end via mocked fetch)', () => {
         new Response(
           JSON.stringify({
             links: [{ url: 'https://example.com/a' }],
-            meta: {
+            response_meta: {
               pagination: { page: 1, limit: 10, total: 1, total_pages: 1, has_more: false },
               truncation: {
                 storage_capped: false,

@@ -44,6 +44,24 @@ describe('renderScrapeText', () => {
     expect(out).toBe('## Example Domain\n\n# Hello\n\nworld')
   })
 
+  it('appends a usage footer with credits, resolved proxy, and cache_hit', () => {
+    const out = renderScrapeText({
+      url: 'https://example.com',
+      markdown: 'body',
+      response_meta: { usage: { credits: 3, proxy: 'advanced', cache_hit: false } },
+    })
+    expect(out).toContain('# usage: 3 credits · proxy advanced · cache_hit false')
+  })
+
+  it('shows 0 credits and cache_hit true on a cache hit', () => {
+    const out = renderScrapeText({
+      url: 'https://example.com',
+      markdown: 'body',
+      response_meta: { usage: { credits: 0, proxy: 'none', cache_hit: true } },
+    })
+    expect(out).toContain('# usage: 0 credits · proxy none · cache_hit true')
+  })
+
   it('falls back to cleaned_html when no markdown is present', () => {
     const out = renderScrapeText({
       url: 'https://example.com',
@@ -108,7 +126,7 @@ describe('renderMapText', () => {
   it('prints one URL per line', () => {
     const out = renderMapText({
       links: [{ url: 'https://a' }, { url: 'https://b' }],
-      meta: {
+      response_meta: {
         pagination: { page: 1, limit: 10, total: 2, total_pages: 1, has_more: false },
         truncation: {
           storage_capped: false,
@@ -124,7 +142,7 @@ describe('renderMapText', () => {
   it('appends a pagination hint when has_more', () => {
     const out = renderMapText({
       links: [{ url: 'https://a' }],
-      meta: {
+      response_meta: {
         pagination: { page: 1, limit: 1, total: 3, total_pages: 3, has_more: true },
         truncation: {
           storage_capped: false,
@@ -135,6 +153,23 @@ describe('renderMapText', () => {
       },
     })
     expect(out).toContain('… and 2 more (use --page 2)')
+  })
+
+  it('appends a usage footer with credits, resolved proxy, and cache_hit', () => {
+    const out = renderMapText({
+      links: [{ url: 'https://a' }],
+      response_meta: {
+        pagination: { page: 1, limit: 10, total: 1, total_pages: 1, has_more: false },
+        truncation: {
+          storage_capped: false,
+          response_capped: false,
+          total_before_max_urls: 1,
+          total_detected_before_storage_cap: 1,
+        },
+        usage: { credits: 1, proxy: 'basic', cache_hit: false },
+      },
+    })
+    expect(out).toContain('# usage: 1 credits · proxy basic · cache_hit false')
   })
 })
 
