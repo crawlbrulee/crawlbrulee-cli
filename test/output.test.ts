@@ -40,8 +40,11 @@ describe('renderScrapeText', () => {
       url: 'https://example.com',
       markdown: '# Hello\n\nworld',
       metadata: { title: 'Example Domain' },
+      response_meta: { usage: { credits: 1, proxy: 'basic', cache_hit: false } },
     })
-    expect(out).toBe('## Example Domain\n\n# Hello\n\nworld')
+    expect(out).toBe(
+      '## Example Domain\n\n# Hello\n\nworld\n\n# usage: 1 credits · proxy basic · cache_hit false'
+    )
   })
 
   it('appends a usage footer with credits, resolved proxy, and cache_hit', () => {
@@ -66,6 +69,7 @@ describe('renderScrapeText', () => {
     const out = renderScrapeText({
       url: 'https://example.com',
       cleaned_html: '<p>hi</p>',
+      response_meta: { usage: { credits: 1, proxy: 'basic', cache_hit: false } },
     })
     expect(out).toContain('<p>hi</p>')
   })
@@ -99,6 +103,7 @@ describe('renderScrapeText', () => {
           },
         ],
       },
+      response_meta: { usage: { credits: 1, proxy: 'basic', cache_hit: false } },
     })
     expect(out).toContain('screenshot: https://cdn/x.png (1 slices)')
     expect(out).toContain('- https://cdn/s0.png')
@@ -108,6 +113,7 @@ describe('renderScrapeText', () => {
     const out = renderScrapeText({
       url: 'https://example.com',
       links: [{ text: 't', href: 'https://a', internal: true }],
+      response_meta: { usage: { credits: 1, proxy: 'basic', cache_hit: false } },
     })
     expect(out).toContain('https://a')
   })
@@ -117,6 +123,7 @@ describe('renderScrapeText', () => {
       url: 'https://example.com',
       markdown: 'body',
       warnings: ['screenshot_truncated'],
+      response_meta: { usage: { credits: 1, proxy: 'basic', cache_hit: false } },
     })
     expect(out).toContain('# warning: screenshot_truncated')
   })
@@ -134,9 +141,10 @@ describe('renderMapText', () => {
           total_before_max_urls: 2,
           total_detected_before_storage_cap: 2,
         },
+        usage: { credits: 1, proxy: 'basic', cache_hit: false },
       },
     })
-    expect(out).toBe('https://a\nhttps://b')
+    expect(out).toBe('https://a\nhttps://b\n\n# usage: 1 credits · proxy basic · cache_hit false')
   })
 
   it('appends a pagination hint when has_more', () => {
@@ -150,6 +158,7 @@ describe('renderMapText', () => {
           total_before_max_urls: 3,
           total_detected_before_storage_cap: 3,
         },
+        usage: { credits: 1, proxy: 'basic', cache_hit: false },
       },
     })
     expect(out).toContain('… and 2 more (use --page 2)')
