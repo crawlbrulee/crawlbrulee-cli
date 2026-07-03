@@ -7,7 +7,7 @@ The official command-line interface for the [crawlbrulee](https://crawlbrulee.co
 - TTY-aware output: text in a terminal, JSON when piped, both forceable.
 - Auth via `crawlbrulee login`, `CRAWLBRULEE_API_KEY`, or a per-call `--api-key`.
 
-> **Status:** v1.x. The command surface is stable; flag additions are minor-version bumps.
+> **Status:** v2.x. The command surface is stable; flag additions are minor-version bumps.
 
 ---
 
