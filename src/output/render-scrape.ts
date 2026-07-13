@@ -1,7 +1,22 @@
-import type { AsyncScrapeResponse, ScrapeResponse } from '@crawlbrulee/sdk'
+import type { AsyncJobStatusResponse, AsyncScrapeResponse, ScrapeResponse } from '@crawlbrulee/sdk'
 
 export function renderAsyncScrapeText(res: AsyncScrapeResponse): string {
   return `job_id: ${res.job_id}`
+}
+
+export function renderJobStatusText(res: AsyncJobStatusResponse): string {
+  const lines = [`status: ${res.status}`, `job_id: ${res.jobId}`, `created: ${res.createdAt}`]
+
+  if (res.status === 'failed' && res.error) {
+    lines.push(`# error: ${res.error}`)
+  }
+
+  if (res.response_meta?.usage) {
+    const { credits, proxy, cache_hit } = res.response_meta.usage
+    lines.push(`# usage: ${credits} credits · proxy ${proxy} · cache_hit ${cache_hit}`)
+  }
+
+  return lines.join('\n')
 }
 
 export function renderScrapeText(res: ScrapeResponse): string {

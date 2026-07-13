@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { formatError } from '../src/output/errors.js'
 import { renderMapText } from '../src/output/render-map.js'
-import { renderScrapeText } from '../src/output/render-scrape.js'
+import { renderJobStatusText, renderScrapeText } from '../src/output/render-scrape.js'
 import { renderJson, resolveFormatMode } from '../src/output/tty.js'
 
 describe('resolveFormatMode', () => {
@@ -126,6 +126,39 @@ describe('renderScrapeText', () => {
       response_meta: { usage: { credits: 1, proxy: 'basic', cache_hit: false } },
     })
     expect(out).toContain('# warning: screenshot_truncated')
+  })
+})
+
+describe('renderJobStatusText', () => {
+  it('prints status, job_id, and created for a running job', () => {
+    const out = renderJobStatusText({
+      jobId: 'job_abc',
+      status: 'running',
+      createdAt: '2026-07-13T10:00:00.000Z',
+    })
+    expect(out).toBe('status: running\njob_id: job_abc\ncreated: 2026-07-13T10:00:00.000Z')
+  })
+
+  it('appends an error line when the job failed', () => {
+    const out = renderJobStatusText({
+      jobId: 'job_bad',
+      status: 'failed',
+      createdAt: '2026-07-13T10:00:00.000Z',
+      error: 'upstream timeout',
+    })
+    expect(out).toContain('status: failed')
+    expect(out).toContain('# error: upstream timeout')
+  })
+
+  it('appends a usage footer when the job is done', () => {
+    const out = renderJobStatusText({
+      jobId: 'job_done',
+      status: 'done',
+      createdAt: '2026-07-13T10:00:00.000Z',
+      response_meta: { usage: { credits: 2, proxy: 'advanced', cache_hit: false } },
+    })
+    expect(out).toContain('status: done')
+    expect(out).toContain('# usage: 2 credits · proxy advanced · cache_hit false')
   })
 })
 

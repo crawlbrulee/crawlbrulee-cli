@@ -3,7 +3,11 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { buildAsyncScrapeRequest, buildScrapeRequest, runScrape } from '../src/commands/scrape.js'
+import {
+  buildAsyncScrapeRequest,
+  buildScrapeRequest,
+  runScrapeUrl,
+} from '../src/commands/scrape.js'
 
 describe('buildScrapeRequest — default extract resolution', () => {
   it('defaults to markdown + metadata when no extract flag is given', () => {
@@ -93,6 +97,12 @@ describe('buildScrapeRequest — transport flags', () => {
   it('--proxy with an unknown tier throws', () => {
     expect(() => buildScrapeRequest('https://example.com', { proxy: 'garbage' })).toThrow(
       /invalid --proxy 'garbage'/
+    )
+  })
+
+  it('--proxy none is rejected (internal-only tier, not user-selectable)', () => {
+    expect(() => buildScrapeRequest('https://example.com', { proxy: 'none' })).toThrow(
+      /invalid --proxy 'none'/
     )
   })
 
@@ -197,7 +207,7 @@ describe('buildAsyncScrapeRequest — webhook flags', () => {
   })
 })
 
-describe('runScrape — async dispatch + validation', () => {
+describe('runScrapeUrl — async dispatch + validation', () => {
   let tempCfg: string
   const ORIG_KEY = process.env.CRAWLBRULEE_API_KEY
 
@@ -227,8 +237,8 @@ describe('runScrape — async dispatch + validation', () => {
     vi.stubGlobal('fetch', fetchMock)
     const writeSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
 
-    await runScrape('https://example.com', {
-      apiKey: 'cble_test_key',
+    await runScrapeUrl('https://example.com', {
+      apiKey: 'cwbl_test_key',
       apiUrl: 'https://staging-api.example.com',
       async: true,
       text: true,
@@ -253,8 +263,8 @@ describe('runScrape — async dispatch + validation', () => {
     vi.stubGlobal('fetch', fetchMock)
     const writeSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
 
-    await runScrape('https://example.com', {
-      apiKey: 'cble_test_key',
+    await runScrapeUrl('https://example.com', {
+      apiKey: 'cwbl_test_key',
       apiUrl: 'https://staging-api.example.com',
       async: true,
       json: true,
@@ -275,8 +285,8 @@ describe('runScrape — async dispatch + validation', () => {
     vi.stubGlobal('fetch', fetchMock)
     vi.spyOn(process.stdout, 'write').mockReturnValue(true)
 
-    await runScrape('https://example.com', {
-      apiKey: 'cble_test_key',
+    await runScrapeUrl('https://example.com', {
+      apiKey: 'cwbl_test_key',
       apiUrl: 'https://staging-api.example.com',
       async: true,
       webhookUrl: 'https://hooks.example.com/cb',
@@ -301,8 +311,8 @@ describe('runScrape — async dispatch + validation', () => {
     vi.stubGlobal('fetch', fetchMock)
     vi.spyOn(process.stdout, 'write').mockReturnValue(true)
 
-    await runScrape('https://example.com', {
-      apiKey: 'cble_test_key',
+    await runScrapeUrl('https://example.com', {
+      apiKey: 'cwbl_test_key',
       apiUrl: 'https://staging-api.example.com',
       async: true,
       webhookUrl: 'https://hooks.example.com/cb',
@@ -325,8 +335,8 @@ describe('runScrape — async dispatch + validation', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     await expect(
-      runScrape('https://example.com', {
-        apiKey: 'cble_test_key',
+      runScrapeUrl('https://example.com', {
+        apiKey: 'cwbl_test_key',
         apiUrl: 'https://staging-api.example.com',
         webhookUrl: 'https://hooks.example.com/cb',
       })
@@ -336,8 +346,8 @@ describe('runScrape — async dispatch + validation', () => {
 
   it('--webhook-metadata without --async errors', async () => {
     await expect(
-      runScrape('https://example.com', {
-        apiKey: 'cble_test_key',
+      runScrapeUrl('https://example.com', {
+        apiKey: 'cwbl_test_key',
         apiUrl: 'https://staging-api.example.com',
         webhookMetadata: '{"x":1}',
       })
@@ -349,8 +359,8 @@ describe('runScrape — async dispatch + validation', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     await expect(
-      runScrape('https://example.com', {
-        apiKey: 'cble_test_key',
+      runScrapeUrl('https://example.com', {
+        apiKey: 'cwbl_test_key',
         apiUrl: 'https://staging-api.example.com',
         async: true,
         webhookUrl: 'https://hooks.example.com/cb',
@@ -361,7 +371,7 @@ describe('runScrape — async dispatch + validation', () => {
   })
 })
 
-describe('runScrape (end-to-end via mocked fetch)', () => {
+describe('runScrapeUrl (end-to-end via mocked fetch)', () => {
   let tempCfg: string
   const ORIG_KEY = process.env.CRAWLBRULEE_API_KEY
 
@@ -391,8 +401,8 @@ describe('runScrape (end-to-end via mocked fetch)', () => {
     vi.stubGlobal('fetch', fetchMock)
     const writeSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
 
-    await runScrape('https://example.com', {
-      apiKey: 'cble_test_key',
+    await runScrapeUrl('https://example.com', {
+      apiKey: 'cwbl_test_key',
       apiUrl: 'https://staging-api.example.com',
       json: true,
     })
@@ -401,7 +411,7 @@ describe('runScrape (end-to-end via mocked fetch)', () => {
     const [calledUrl, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
     expect(calledUrl).toBe('https://staging-api.example.com/api/scrape')
     expect(init.method).toBe('POST')
-    expect((init.headers as Record<string, string>).authorization).toBe('Bearer cble_test_key')
+    expect((init.headers as Record<string, string>).authorization).toBe('Bearer cwbl_test_key')
     const parsedBody: unknown = JSON.parse(init.body as string)
     expect(parsedBody).toEqual({
       url: 'https://example.com',
@@ -421,8 +431,8 @@ describe('runScrape (end-to-end via mocked fetch)', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     await expect(
-      runScrape('file:///etc/passwd', {
-        apiKey: 'cble_test_key',
+      runScrapeUrl('file:///etc/passwd', {
+        apiKey: 'cwbl_test_key',
         apiUrl: 'https://staging-api.example.com',
         json: true,
       })
@@ -440,8 +450,8 @@ describe('runScrape (end-to-end via mocked fetch)', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const outPath = join(tempCfg, 'out.json')
-    await runScrape('https://example.com', {
-      apiKey: 'cble_test_key',
+    await runScrapeUrl('https://example.com', {
+      apiKey: 'cwbl_test_key',
       apiUrl: 'https://staging-api.example.com',
       output: outPath,
     })
@@ -454,7 +464,7 @@ describe('runScrape (end-to-end via mocked fetch)', () => {
 
   it('throws MissingAuthError when no key is reachable', async () => {
     await expect(
-      runScrape('https://example.com', { apiUrl: 'https://staging.example.com' })
+      runScrapeUrl('https://example.com', { apiUrl: 'https://staging.example.com' })
     ).rejects.toThrow(/not logged in/)
   })
 })

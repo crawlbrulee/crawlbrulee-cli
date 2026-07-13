@@ -1,10 +1,17 @@
 import type { AsyncScrapeRequest, AsyncScrapeWebhook, ScrapeRequest } from '@crawlbrulee/sdk'
 import type { Command } from 'commander'
 
-import { renderAsyncScrapeText, renderScrapeText } from '../output/render-scrape.js'
+import {
+  renderAsyncScrapeText,
+  renderJobStatusText,
+  renderScrapeText,
+} from '../output/render-scrape.js'
+import { resolveFormatMode } from '../output/tty.js'
+import { parseDurationSeconds } from '../parsers/duration.js'
 import { parseNonNegativeInt } from '../parsers/integers.js'
 import { parseProxy } from '../parsers/proxy.js'
 import { parseScreenshotFlag } from '../parsers/screenshot.js'
+import { withAbortOnSigint } from './abort.js'
 import { addFormatOptions, runCommand, withErrorHandler, type CommonOptions } from './runner.js'
 
 export interface ScrapeOptions extends CommonOptions {
@@ -28,15 +35,46 @@ export interface ScrapeOptions extends CommonOptions {
   async?: boolean
   webhookUrl?: string
   webhookMetadata?: string
+
+  wait?: boolean
+  interval?: string
+  timeout?: string
+}
+
+/** Polling knobs shared by `scrape wait` and `scrape url --async --wait`. */
+export interface WaitOptions extends CommonOptions {
+  interval?: string
+  timeout?: string
+}
+
+function addAuthOptions(cmd: Command): Command {
+  return cmd
+    .option('-k, --api-key <key>', 'API key (overrides config + env)')
+    .option('--api-url <url>', 'Base URL (overrides config + env)')
+}
+
+function addWaitOptions(cmd: Command): Command {
+  return cmd
+    .option('--interval <seconds>', 'seconds between status polls while waiting (default 2)')
+    .option(
+      '--timeout <seconds>',
+      'max seconds to wait before giving up (default 300; 0 = wait forever)'
+    )
 }
 
 export function registerScrapeCommand(program: Command): void {
-  const cmd = program
-    .command('scrape <url>')
-    .description('Scrape a URL via the crawlbrulee API')
-    .option('-k, --api-key <key>', 'API key (overrides config + env)')
-    .option('--api-url <url>', 'Base URL (overrides config + env)')
+  const scrape = program.command('scrape').description('Scrape a URL and manage async scrape jobs')
 
+  registerScrapeUrlCommand(scrape)
+  registerScrapeStatusCommand(scrape)
+  registerScrapeResultCommand(scrape)
+  registerScrapeWaitCommand(scrape)
+}
+
+function registerScrapeUrlCommand(scrape: Command): void {
+  const cmd = scrape.command('url <url>').description('Scrape a URL via the crawlbrulee API')
+
+  addAuthOptions(cmd)
     .option('-m, --markdown', 'extract markdown')
     .option('-c, --cleaned-html', 'extract cleaned HTML (main content)')
     .option('-r, --raw-html', 'extract raw HTML')
@@ -51,7 +89,10 @@ export function registerScrapeCommand(program: Command): void {
     .option('--all', 'extract every content type at once')
     .option('--no-metadata', 'omit page metadata from the response')
 
-    .option('--proxy <tier>', 'proxy tier: basic | advanced | auto | none')
+    .option(
+      '--proxy <tier>',
+      'proxy tier: basic | advanced | auto (default: auto — tries basic tier first, escalates to advanced on failure)'
+    )
     .option('--require-js', 'render with a headless browser')
     .option('--exclude-selectors <csv>', 'CSS selectors to strip, comma-separated')
     .option('--cache-max-age <seconds>', 'cache max age in seconds')
@@ -67,6 +108,10 @@ export function registerScrapeCommand(program: Command): void {
       'submit a background job and print its job_id (does not wait for the result)'
     )
     .option(
+      '--wait',
+      'with --async, poll until the job finishes and print the result (not the job_id)'
+    )
+    .option(
       '--webhook-url <url>',
       'completion webhook endpoint, called when the job finishes (requires --async)'
     )
@@ -75,12 +120,62 @@ export function registerScrapeCommand(program: Command): void {
       'JSON object echoed back in the webhook payload (requires --webhook-url)'
     )
 
-  addFormatOptions(cmd).action(withErrorHandler(runScrape))
+  addWaitOptions(cmd)
+  addFormatOptions(cmd).action(withErrorHandler(runScrapeUrl))
 }
 
-export async function runScrape(url: string, opts: ScrapeOptions): Promise<void> {
+function registerScrapeStatusCommand(scrape: Command): void {
+  const cmd = scrape
+    .command('status <job-id>')
+    .description('Show the current status of an async scrape job')
+  addAuthOptions(cmd)
+  addFormatOptions(cmd).action(withErrorHandler(runScrapeStatus))
+}
+
+function registerScrapeResultCommand(scrape: Command): void {
+  const cmd = scrape
+    .command('result <job-id>')
+    .description('Fetch the result of a completed async scrape job')
+  addAuthOptions(cmd)
+  addFormatOptions(cmd).action(withErrorHandler(runScrapeResult))
+}
+
+function registerScrapeWaitCommand(scrape: Command): void {
+  const cmd = scrape
+    .command('wait <job-id>')
+    .description('Poll an async scrape job until it finishes, then print the result')
+  addAuthOptions(cmd)
+  addWaitOptions(cmd)
+  addFormatOptions(cmd).action(withErrorHandler(runScrapeWait))
+}
+
+export async function runScrapeUrl(url: string, opts: ScrapeOptions): Promise<void> {
+  // --wait polls a background job to completion, so it only makes sense with
+  // --async; the polling knobs in turn only make sense with --wait.
+  if (opts.wait && !opts.async) {
+    throw new Error('--wait requires --async')
+  }
+  if ((opts.interval !== undefined || opts.timeout !== undefined) && !opts.wait) {
+    throw new Error('--interval and --timeout require --wait')
+  }
+
   if (opts.async) {
     const body = buildAsyncScrapeRequest(url, opts)
+
+    if (opts.wait) {
+      const wait = resolveWaitParams(opts)
+      return runCommand({
+        opts,
+        call: client =>
+          withAbortOnSigint(async signal => {
+            const submitted = await client.scrapeAsync(body, { signal })
+            emitWaitNote(submitted.job_id, wait, opts)
+            return client.waitForScrape(submitted.job_id, { ...wait, signal })
+          }),
+        renderText: renderScrapeText,
+      })
+    }
+
     return runCommand({
       opts,
       call: client => client.scrapeAsync(body),
@@ -102,6 +197,65 @@ export async function runScrape(url: string, opts: ScrapeOptions): Promise<void>
     call: client => client.scrape(body),
     renderText: renderScrapeText,
   })
+}
+
+export function runScrapeStatus(jobId: string, opts: CommonOptions): Promise<void> {
+  return runCommand({
+    opts,
+    call: client => client.getScrapeStatus(jobId),
+    renderText: renderJobStatusText,
+  })
+}
+
+export function runScrapeResult(jobId: string, opts: CommonOptions): Promise<void> {
+  return runCommand({
+    opts,
+    call: client => client.getScrapeResult(jobId),
+    renderText: renderScrapeText,
+  })
+}
+
+export function runScrapeWait(jobId: string, opts: WaitOptions): Promise<void> {
+  const wait = resolveWaitParams(opts)
+  return runCommand({
+    opts,
+    call: client =>
+      withAbortOnSigint(signal => {
+        emitWaitNote(jobId, wait, opts)
+        return client.waitForScrape(jobId, { ...wait, signal })
+      }),
+    renderText: renderScrapeText,
+  })
+}
+
+/** Resolve the `--interval`/`--timeout` seconds flags into SDK milliseconds. */
+export function resolveWaitParams(opts: WaitOptions): { intervalMs?: number; timeoutMs?: number } {
+  const params: { intervalMs?: number; timeoutMs?: number } = {}
+  if (opts.interval !== undefined) {
+    params.intervalMs = parseDurationSeconds(opts.interval, '--interval')
+  }
+  if (opts.timeout !== undefined) {
+    params.timeoutMs = parseDurationSeconds(opts.timeout, '--timeout', { allowZero: true })
+  }
+  return params
+}
+
+/**
+ * Print a single "waiting…" note to stderr before polling, so stdout stays
+ * clean for piping. Silent under `--json` or when stderr is not a terminal.
+ */
+function emitWaitNote(
+  jobId: string,
+  wait: { intervalMs?: number; timeoutMs?: number },
+  opts: CommonOptions
+): void {
+  if (resolveFormatMode(opts, process.stderr) !== 'text') return
+  const intervalMs = wait.intervalMs ?? 2000
+  const timeoutMs = wait.timeoutMs ?? 300_000
+  const timeoutNote = timeoutMs === 0 ? 'no timeout' : `timeout ${timeoutMs / 1000}s`
+  process.stderr.write(
+    `waiting for job ${jobId} — polling every ${intervalMs / 1000}s, ${timeoutNote}…\n`
+  )
 }
 
 export function buildScrapeRequest(url: string, opts: ScrapeOptions): ScrapeRequest {

@@ -7,7 +7,11 @@ The official command-line interface for the [crawlbrulee](https://crawlbrulee.co
 - TTY-aware output: text in a terminal, JSON when piped, both forceable.
 - Auth via `crawlbrulee login`, `CRAWLBRULEE_API_KEY`, or a per-call `--api-key`.
 
-> **Status:** v2.x. The command surface is stable; flag additions are minor-version bumps.
+> **Status:** v3.x. The command surface is stable; flag additions are minor-version bumps.
+>
+> **Breaking in v3:** the scrape command moved under a `scrape` group — use
+> `crawlbrulee scrape url <url>` (was `crawlbrulee scrape <url>`). This made room for the
+> async-job subcommands `scrape status`, `scrape result`, and `scrape wait`.
 
 ---
 
@@ -15,7 +19,7 @@ The official command-line interface for the [crawlbrulee](https://crawlbrulee.co
 
 ```bash
 # one-off — recommended
-npx crawlbrulee scrape https://example.com
+npx crawlbrulee scrape url https://example.com
 
 # or install globally
 npm install -g crawlbrulee
@@ -35,32 +39,32 @@ crawlbrulee login
 crawlbrulee view-config
 
 # 3. Scrape something
-crawlbrulee scrape https://example.com
+crawlbrulee scrape url https://example.com
 ```
 
 You can also skip `login` entirely and authenticate per-call:
 
 ```bash
-export CRAWLBRULEE_API_KEY="cble_..."
-crawlbrulee scrape https://example.com
+export CRAWLBRULEE_API_KEY="cwbl_..."
+crawlbrulee scrape url https://example.com
 ```
 
 ---
 
 ## Commands
 
-### `crawlbrulee scrape <url>`
+### `crawlbrulee scrape url <url>`
 
 Scrape a URL. Default extraction is `markdown + metadata`.
 
 ```bash
-crawlbrulee scrape https://example.com                # markdown to stdout
-crawlbrulee scrape https://example.com | jq .markdown # JSON when piped
-crawlbrulee scrape https://example.com -c             # cleaned HTML
-crawlbrulee scrape https://example.com --all          # every extract field at once
-crawlbrulee scrape https://example.com -ss full       # full-page screenshot
-crawlbrulee scrape https://example.com --proxy advanced --require-js
-crawlbrulee scrape https://example.com -o out.json
+crawlbrulee scrape url https://example.com                # markdown to stdout
+crawlbrulee scrape url https://example.com | jq .markdown # JSON when piped
+crawlbrulee scrape url https://example.com -c             # cleaned HTML
+crawlbrulee scrape url https://example.com --all          # every extract field at once
+crawlbrulee scrape url https://example.com -ss full       # full-page screenshot
+crawlbrulee scrape url https://example.com --proxy advanced --require-js
+crawlbrulee scrape url https://example.com -o out.json
 ```
 
 Every scrape response carries a `response_meta.usage` envelope — `{ credits, proxy, cache_hit }` — where
@@ -104,16 +108,16 @@ Page metadata (title, OG/Twitter tags, etc.) is returned under `metadata`.
 `full` is a typeable shortcut for `full_page`. Positions are strictly left-to-right — to set position N you must also fill 1..N-1.
 
 ```bash
-crawlbrulee scrape https://x.com -ss viewport
-crawlbrulee scrape https://x.com -ss full,1920,1080
-crawlbrulee scrape https://x.com -ss full,1920,1080,mobile
-crawlbrulee scrape https://x.com -ss full,1280,720,desktop,800   # sliced
+crawlbrulee scrape url https://x.com -ss viewport
+crawlbrulee scrape url https://x.com -ss full,1920,1080
+crawlbrulee scrape url https://x.com -ss full,1920,1080,mobile
+crawlbrulee scrape url https://x.com -ss full,1280,720,desktop,800   # sliced
 ```
 
 **Other scrape flags:**
 
 ```
---proxy <basic|advanced|auto|none>   default basic
+--proxy <basic|advanced|auto>        default auto (basic tier first, escalates to advanced on failure)
 --require-js                         render with a headless browser
 --exclude-selectors "nav,footer"     CSS selectors stripped from the result
 --cache-max-age 86400                cache cutoff in seconds
@@ -122,28 +126,36 @@ crawlbrulee scrape https://x.com -ss full,1280,720,desktop,800   # sliced
 -o, --output <file>                  write to a file instead of stdout
 ```
 
-**Async (fire-and-forget) scrape**
+**Async scrape**
 
 Submit the scrape as a background job and get a `job_id` back immediately instead of
 holding the connection open until the page is ready. Good for heavy JS rendering or
-long-page screenshots. The CLI does **not** poll or wait — it prints the `job_id` and exits.
+long-page screenshots. By default `--async` prints the `job_id` and exits; add `--wait` to
+poll to completion and print the result in one command.
 
 ```
---async                              submit a background job; print the job_id and exit
+--async                              submit a background job (prints the job_id)
+--wait                               with --async, poll until done and print the result
+--interval <seconds>                 seconds between status polls while waiting (default 2)
+--timeout <seconds>                  max seconds to wait (default 300; 0 = wait forever)
 --webhook-url <url>                  completion webhook endpoint (requires --async)
 --webhook-metadata <json>            JSON object echoed back in the webhook (requires --webhook-url)
 ```
 
 ```bash
 # submit and get a job id (text mode shows `job_id: <id>`)
-crawlbrulee scrape https://example.com --async
+crawlbrulee scrape url https://example.com --async
 # job_id: job_abc123
 
 # get the job id as JSON for scripting
-crawlbrulee scrape https://example.com --async --json | jq -r .job_id
+crawlbrulee scrape url https://example.com --async --json | jq -r .job_id
+
+# submit, wait for it to finish, and print the result in one go
+crawlbrulee scrape url https://example.com --async --wait
+crawlbrulee scrape url https://example.com --async --wait --interval 5 --timeout 600
 
 # be notified when the job finishes, with correlation metadata echoed back
-crawlbrulee scrape https://example.com --async \
+crawlbrulee scrape url https://example.com --async \
   --webhook-url https://hooks.example.com/crawlbrulee \
   --webhook-metadata '{"order":"abc","attempt":2}'
 ```
@@ -151,8 +163,48 @@ crawlbrulee scrape https://example.com --async \
 The webhook is delivered as a single signed `scrape.complete` POST when the job reaches a
 terminal state; `--webhook-metadata` must be a JSON **object** and is returned verbatim in
 the webhook payload's `data.metadata`. Configure the signing secret in the dashboard
-(Account → Webhooks). `--webhook-url`/`--webhook-metadata` require `--async`, and
-`--webhook-metadata` requires `--webhook-url`; invalid JSON fails with a clear error.
+(Account → Webhooks). `--wait` requires `--async` (and `--interval`/`--timeout` require
+`--wait`); `--webhook-url`/`--webhook-metadata` require `--async`, and `--webhook-metadata`
+requires `--webhook-url`; invalid JSON fails with a clear error.
+
+### `crawlbrulee scrape status <job-id>`
+
+Look up the current state of an async job — `pending`, `running`, `done`, or `failed`.
+
+```bash
+crawlbrulee scrape status job_abc123
+# status: running
+# job_id: job_abc123
+# created: 2026-07-13T10:00:00.000Z
+```
+
+When the job is `done`, the status carries the `response_meta.usage` envelope; when it
+`failed`, an `# error: …` line explains why.
+
+### `crawlbrulee scrape result <job-id>`
+
+Fetch the result of a completed async job. Renders exactly like a synchronous `scrape url`.
+If the job isn't finished yet, it errors — check `scrape status` first, or use `scrape wait`.
+
+```bash
+crawlbrulee scrape result job_abc123
+crawlbrulee scrape result job_abc123 --json | jq .markdown
+```
+
+### `crawlbrulee scrape wait <job-id>`
+
+Poll an existing job until it reaches a terminal state, then print the result — the
+`wait_for_scrape` equivalent for a `job_id` you already have.
+
+```bash
+crawlbrulee scrape wait job_abc123
+crawlbrulee scrape wait job_abc123 --interval 5 --timeout 600   # poll every 5s, give up after 10m
+crawlbrulee scrape wait job_abc123 --timeout 0                  # wait indefinitely
+```
+
+`--interval`/`--timeout` are in **seconds** (defaults: poll every 2s, time out after 300s;
+`--timeout 0` waits forever). While waiting in a terminal it prints a one-line `waiting for
+job …` note to stderr so stdout stays clean for piping; press Ctrl-C to cancel.
 
 ### `crawlbrulee map <url>`
 
@@ -176,7 +228,7 @@ crawlbrulee map https://example.com -o links.txt
 | `--internal-only`       | same-domain links only                                                     |
 | `--external-only`       | external-domain links only                                                 |
 | `--no-subdomains`       | exclude subdomains from internal results                                   |
-| `--proxy <tier>`        | `basic` \| `advanced` \| `auto` \| `none`                                  |
+| `--proxy <tier>`        | `basic` \| `advanced` \| `auto`                                            |
 | `--cache-max-age <sec>` | cache cutoff in seconds                                                    |
 | `--country <iso>`       | ISO 3166-1 alpha-2 country — proxy egress hint (eu / europe also accepted) |
 | `-o, --output <file>`   | write to a file instead of stdout                                          |
@@ -205,7 +257,7 @@ crawlbrulee whoami
 
 ```bash
 crawlbrulee login                          # prompt for key
-crawlbrulee login --api-key cble_…         # non-interactive
+crawlbrulee login --api-key cwbl_…         # non-interactive
 crawlbrulee login --api-url https://staging-api.crawlbrulee.com
 crawlbrulee logout                         # wipe stored credentials
 crawlbrulee view-config                    # print resolved config (key masked)
@@ -249,9 +301,9 @@ stdout is **TTY-aware**:
 Examples:
 
 ```bash
-crawlbrulee scrape https://example.com                  # markdown title + body
-crawlbrulee scrape https://example.com | jq .links       # JSON automatically
-crawlbrulee scrape https://example.com --json --compact  # single-line JSON to terminal
+crawlbrulee scrape url https://example.com               # markdown title + body
+crawlbrulee scrape url https://example.com | jq .links   # JSON automatically
+crawlbrulee scrape url https://example.com --json --compact  # single-line JSON to terminal
 crawlbrulee map  https://example.com > links.txt         # JSON to a file
 crawlbrulee map  https://example.com --text > links.txt  # newline-delimited URLs to a file
 ```

@@ -3,19 +3,19 @@ import { describe, expect, it } from 'vitest'
 import { maskApiKey } from '../src/output/mask.js'
 
 describe('maskApiKey', () => {
-  it('keeps the cble_ prefix and reveals only the last 4 chars', () => {
-    expect(maskApiKey('cble_ABCDEFGHIJKL1234')).toBe('cble_…1234')
+  it('keeps the cwbl_ prefix and reveals only the last 4 chars', () => {
+    expect(maskApiKey('cwbl_ABCDEFGHIJKL1234')).toBe('cwbl_…1234')
   })
 
-  it('handles short cble_ keys by still using the prefix-+-last-4 form', () => {
-    expect(maskApiKey('cble_XY12')).toBe('cble_…XY12')
+  it('handles short cwbl_ keys by still using the prefix-+-last-4 form', () => {
+    expect(maskApiKey('cwbl_XY12')).toBe('cwbl_…XY12')
   })
 
-  it('shows first/last 2 chars for non-cble keys', () => {
+  it('shows first/last 2 chars for non-cwbl keys', () => {
     expect(maskApiKey('1234567890abcd')).toBe('12…cd')
   })
 
-  it('returns an ellipsis for very short non-cble keys', () => {
+  it('returns an ellipsis for very short non-cwbl keys', () => {
     expect(maskApiKey('short')).toBe('…')
   })
 

@@ -137,7 +137,7 @@ describe('runMap (end-to-end via mocked fetch)', () => {
     const writeSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
 
     await runMap('https://example.com', {
-      apiKey: 'cble_test',
+      apiKey: 'cwbl_test',
       apiUrl: 'https://staging-api.example.com',
       limit: '10',
       country: 'DE',
@@ -146,7 +146,7 @@ describe('runMap (end-to-end via mocked fetch)', () => {
 
     const [calledUrl, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
     expect(calledUrl).toBe('https://staging-api.example.com/api/map')
-    expect((init.headers as Record<string, string>).authorization).toBe('Bearer cble_test')
+    expect((init.headers as Record<string, string>).authorization).toBe('Bearer cwbl_test')
     const parsedBody: unknown = JSON.parse(init.body as string)
     expect(parsedBody).toEqual({
       url: 'https://example.com',

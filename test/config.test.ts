@@ -30,9 +30,9 @@ describe('config store', () => {
   })
 
   it('persists and reads back', async () => {
-    await writeConfig({ apiKey: 'cble_test_xyz', apiUrl: 'https://staging.example' })
+    await writeConfig({ apiKey: 'cwbl_test_xyz', apiUrl: 'https://staging.example' })
     expect(await readConfig()).toEqual({
-      apiKey: 'cble_test_xyz',
+      apiKey: 'cwbl_test_xyz',
       apiUrl: 'https://staging.example',
     })
   })
@@ -44,7 +44,7 @@ describe('config store', () => {
   })
 
   it('clearConfig removes the file', async () => {
-    await writeConfig({ apiKey: 'cble_test' })
+    await writeConfig({ apiKey: 'cwbl_test' })
     await clearConfig()
     expect(await readConfig()).toEqual({})
   })
@@ -54,7 +54,7 @@ describe('config store', () => {
   it.skipIf(process.platform === 'win32')(
     'writes the file with mode 0600 for secret hygiene (POSIX only)',
     async () => {
-      await writeConfig({ apiKey: 'cble_test' })
+      await writeConfig({ apiKey: 'cwbl_test' })
       const s = await stat(getConfigPath())
       expect(s.mode & 0o777).toBe(0o600)
     }

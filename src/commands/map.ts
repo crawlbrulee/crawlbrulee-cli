@@ -33,7 +33,10 @@ export function registerMapCommand(program: Command): void {
     .option('--external-only', 'only external-domain links')
     .option('--no-subdomains', 'exclude subdomains from internal results')
 
-    .option('--proxy <tier>', 'proxy tier: basic | advanced | auto | none')
+    .option(
+      '--proxy <tier>',
+      'proxy tier: basic | advanced | auto (default: auto — tries basic tier first, escalates to advanced on failure)'
+    )
     .option('--cache-max-age <seconds>', 'cache max age in seconds')
     .option(
       '--country <iso>',

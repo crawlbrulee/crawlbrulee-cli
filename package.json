@@ -1,6 +1,6 @@
 {
   "name": "crawlbrulee",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Official CLI for the crawlbrulee API — scrape, map, and inspect usage from your terminal.",
   "keywords": [
     "crawlbrulee",
