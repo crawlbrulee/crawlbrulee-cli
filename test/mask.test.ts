@@ -11,6 +11,10 @@ describe('maskApiKey', () => {
     expect(maskApiKey('cwbl_XY12')).toBe('cwbl_…XY12')
   })
 
+  it('masks the legacy cble_ prefix the same way (old keys still authenticate)', () => {
+    expect(maskApiKey('cble_ABCDEFGHIJKL1234')).toBe('cble_…1234')
+  })
+
   it('shows first/last 2 chars for non-cwbl keys', () => {
     expect(maskApiKey('1234567890abcd')).toBe('12…cd')
   })

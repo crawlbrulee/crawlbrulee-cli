@@ -1,5 +1,38 @@
 # Changelog
 
+## 3.1.0 (2026-07-14)
+
+Tracks a wave of server-side behavior changes. No flags were removed or renamed.
+
+### Changed
+
+- **Requires `@crawlbrulee/sdk` `^0.6.0`** (built against the updated response contract).
+- **Default proxy tier is now `auto`.** When you omit `--proxy`, the server starts on the
+  `basic` tier and escalates to `advanced` on failure (was `basic`-only). Pass
+  `--proxy basic|advanced|auto` to pin a tier explicitly. Nothing changes if you already
+  pass `--proxy`.
+- **Custom screenshot viewport is bounded.** `-ss <mode>,<width>,<height>` now rejects a
+  width/height outside `16–10000` up front with a clear message, instead of round-tripping
+  to a server `400`.
+
+### Added
+
+- **Legacy token masking.** `view-config`/`whoami` mask the current `cwbl_` prefix and the
+  legacy `cble_` prefix identically (old keys still authenticate).
+
+### Notes
+
+- **Screenshots.** In the rare case a screenshot can't be captured, you still get everything
+  else you requested and the response leaves out the `screenshot` field. An absent screenshot
+  simply renders nothing.
+- **API token prefix** is `cwbl_` (prod) / `cwbl_staging_` (staging). Existing `cble_`
+  tokens keep working — no action needed.
+- **`--images`** now returns absolute URLs: relative `src`s resolve against the full page
+  URL and query strings are preserved.
+- **Rate limits are per-plan**, with separate per-minute buckets for sync and async work
+  (sync `scrape url` and `map` share the sync bucket; `scrape url --async` uses the async
+  bucket): Free 50/100, Starter 100/300, Pro 350/1000, Advanced 1000/3000 (sync/async).
+
 ## 3.0.0 (2026-07-13)
 
 ### Breaking

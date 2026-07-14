@@ -87,6 +87,9 @@ Page metadata (title, OG/Twitter tags, etc.) is returned under `metadata`.
 | `--all`          | —     | every extract field at once             |
 | `--no-metadata`  | —     | omit page metadata from the response    |
 
+`--images` returns absolute image URLs — relative `src`s are resolved against the page URL
+and any query string is preserved.
+
 **Screenshot syntax (`-ss` / `--screenshot`)** — positional, comma-separated:
 
 ```
@@ -100,10 +103,13 @@ Page metadata (title, OG/Twitter tags, etc.) is returned under `metadata`.
 | Position | Values                              | Default              |
 | -------- | ----------------------------------- | -------------------- |
 | 1        | `viewport` \| `full` \| `full_page` | `full_page`          |
-| 2        | width (positive int)                | server default       |
-| 3        | height (positive int)               | server default       |
+| 2        | width (int, 16–10000)               | server default       |
+| 3        | height (int, 16–10000)              | server default       |
 | 4        | `desktop` \| `mobile`               | `desktop`            |
 | 5        | slice-height (≥ 500)                | none (no tile slice) |
+
+In rare cases a screenshot can't be captured; when that happens you still get everything else
+you requested and the response simply leaves out the `screenshot` field.
 
 `full` is a typeable shortcut for `full_page`. Positions are strictly left-to-right — to set position N you must also fill 1..N-1.
 

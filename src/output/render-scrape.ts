@@ -5,7 +5,7 @@ export function renderAsyncScrapeText(res: AsyncScrapeResponse): string {
 }
 
 export function renderJobStatusText(res: AsyncJobStatusResponse): string {
-  const lines = [`status: ${res.status}`, `job_id: ${res.jobId}`, `created: ${res.createdAt}`]
+  const lines = [`status: ${res.status}`, `job_id: ${res.job_id}`, `created: ${res.created_at}`]
 
   if (res.status === 'failed' && res.error) {
     lines.push(`# error: ${res.error}`)
@@ -46,6 +46,9 @@ export function renderScrapeText(res: ScrapeResponse): string {
       lines.push(`screenshot: ${res.screenshot.url}`)
     }
   }
+  // In rare cases a screenshot can't be captured; when that happens the response
+  // leaves out the `screenshot` field entirely, so an absent screenshot renders
+  // nothing — same as any other output that wasn't returned.
 
   if (!body) {
     if (res.links && res.links.length > 0) {
