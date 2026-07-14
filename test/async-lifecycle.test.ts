@@ -55,7 +55,11 @@ describe('async lifecycle run functions (via mocked fetch)', () => {
     const fetchMock = vi.fn(
       async () =>
         new Response(
-          JSON.stringify({ jobId: 'job_1', status: 'running', createdAt: '2026-07-13T10:00:00Z' }),
+          JSON.stringify({
+            job_id: 'job_1',
+            status: 'running',
+            created_at: '2026-07-13T10:00:00Z',
+          }),
           { status: 200, headers: JSON_HEADERS }
         )
     )
@@ -95,7 +99,7 @@ describe('async lifecycle run functions (via mocked fetch)', () => {
       const u = String(url)
       if (u.includes('/api/scrape/status/')) {
         return new Response(
-          JSON.stringify({ jobId: 'job_3', status: 'done', createdAt: '2026-07-13T10:00:00Z' }),
+          JSON.stringify({ job_id: 'job_3', status: 'done', created_at: '2026-07-13T10:00:00Z' }),
           { status: 200, headers: JSON_HEADERS }
         )
       }
@@ -121,7 +125,7 @@ describe('async lifecycle run functions (via mocked fetch)', () => {
       const u = String(url)
       if (u.includes('/api/scrape/status/')) {
         return new Response(
-          JSON.stringify({ jobId: 'job_4', status: 'done', createdAt: '2026-07-13T10:00:00Z' }),
+          JSON.stringify({ job_id: 'job_4', status: 'done', created_at: '2026-07-13T10:00:00Z' }),
           { status: 200, headers: JSON_HEADERS }
         )
       }
@@ -145,7 +149,7 @@ describe('async lifecycle run functions (via mocked fetch)', () => {
       const u = String(url)
       if (u.includes('/api/scrape/status/')) {
         return new Response(
-          JSON.stringify({ jobId: 'job_5', status: 'done', createdAt: '2026-07-13T10:00:00Z' }),
+          JSON.stringify({ job_id: 'job_5', status: 'done', created_at: '2026-07-13T10:00:00Z' }),
           { status: 200, headers: JSON_HEADERS }
         )
       }
@@ -211,7 +215,7 @@ describe('runScrapeUrl — --wait dispatch + validation', () => {
       }
       if (u.includes('/api/scrape/status/')) {
         return new Response(
-          JSON.stringify({ jobId: 'job_w', status: 'done', createdAt: '2026-07-13T10:00:00Z' }),
+          JSON.stringify({ job_id: 'job_w', status: 'done', created_at: '2026-07-13T10:00:00Z' }),
           { status: 200, headers: JSON_HEADERS }
         )
       }

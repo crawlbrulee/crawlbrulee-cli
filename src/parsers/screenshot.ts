@@ -14,6 +14,10 @@ export type ParsedScreenshot = Pick<
 >
 
 const MIN_SLICE_HEIGHT = 500
+// Server bounds for a custom viewport (out-of-range → 400). Mirror them here so
+// the CLI fails fast with a clear message instead of a round-trip.
+const MIN_VIEWPORT_DIM = 16
+const MAX_VIEWPORT_DIM = 10000
 const SCREENSHOT_MODES = ['viewport', 'full', 'full_page'] as const
 const DEVICE_MODES = ['desktop', 'mobile'] as const
 
@@ -39,14 +43,14 @@ export function parseScreenshotFlag(raw: ScreenshotFlagInput): ParsedScreenshot 
 
   if (parts.length >= 2) {
     const widthRaw = required(parts[1], 'width is required when more than the mode is specified')
-    const width = parsePositiveInt(widthRaw, 'width')
+    const width = parseViewportDim(widthRaw, 'width')
 
     if (parts.length < 3 || !parts[2]) {
       throw new ScreenshotParseError(
         'width given without height — both viewport dimensions must be provided'
       )
     }
-    const height = parsePositiveInt(parts[2], 'height')
+    const height = parseViewportDim(parts[2], 'height')
 
     result.viewport = { width, height }
   }
@@ -99,6 +103,16 @@ function parsePositiveInt(raw: string, label: string): number {
   const n = Number(raw)
   if (!Number.isInteger(n) || n <= 0) {
     throw new ScreenshotParseError(`invalid ${label} '${raw}' (must be a positive integer)`)
+  }
+  return n
+}
+
+function parseViewportDim(raw: string, label: string): number {
+  const n = Number(raw)
+  if (!Number.isInteger(n) || n < MIN_VIEWPORT_DIM || n > MAX_VIEWPORT_DIM) {
+    throw new ScreenshotParseError(
+      `invalid ${label} '${raw}' (must be an integer between ${MIN_VIEWPORT_DIM} and ${MAX_VIEWPORT_DIM})`
+    )
   }
   return n
 }

@@ -62,6 +62,25 @@ describe('parseScreenshotFlag', () => {
       expect(() => parseScreenshotFlag('full,abc,1080')).toThrow(/invalid width 'abc'/)
       expect(() => parseScreenshotFlag('full,1.5,1080')).toThrow(/invalid width '1.5'/)
     })
+
+    it('rejects viewport dimensions below the API minimum (16)', () => {
+      expect(() => parseScreenshotFlag('full,15,1080')).toThrow(
+        /invalid width '15' \(must be an integer between 16 and 10000\)/
+      )
+      expect(() => parseScreenshotFlag('full,1920,10')).toThrow(/invalid height '10'/)
+    })
+
+    it('rejects viewport dimensions above the API maximum (10000)', () => {
+      expect(() => parseScreenshotFlag('full,10001,1080')).toThrow(/invalid width '10001'/)
+      expect(() => parseScreenshotFlag('full,1920,10001')).toThrow(/invalid height '10001'/)
+    })
+
+    it('accepts the boundary values 16 and 10000', () => {
+      expect(parseScreenshotFlag('full,16,10000')).toEqual({
+        type: 'full_page',
+        viewport: { width: 16, height: 10000 },
+      })
+    })
   })
 
   describe('device mode', () => {

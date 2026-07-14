@@ -1,3 +1,4 @@
+import type { ScrapeResponse } from '@crawlbrulee/sdk'
 import { RateLimitError, UsageAllocationError, ValidationError } from '@crawlbrulee/sdk'
 import { describe, expect, it } from 'vitest'
 
@@ -109,6 +110,20 @@ describe('renderScrapeText', () => {
     expect(out).toContain('- https://cdn/s0.png')
   })
 
+  it('renders no screenshot line when the field is absent (screenshot not captured)', () => {
+    // In rare cases a screenshot can't be captured; when that happens the response
+    // leaves out the `screenshot` field entirely, so an absent screenshot simply
+    // renders nothing.
+    const res = {
+      url: 'https://example.com',
+      markdown: 'body',
+      response_meta: { usage: { credits: 1, proxy: 'basic', cache_hit: false } },
+    } as unknown as ScrapeResponse
+    const out = renderScrapeText(res)
+    expect(out).not.toContain('screenshot')
+    expect(out).toContain('body')
+  })
+
   it('lists links when no body was requested', () => {
     const out = renderScrapeText({
       url: 'https://example.com',
@@ -132,18 +147,18 @@ describe('renderScrapeText', () => {
 describe('renderJobStatusText', () => {
   it('prints status, job_id, and created for a running job', () => {
     const out = renderJobStatusText({
-      jobId: 'job_abc',
+      job_id: 'job_abc',
       status: 'running',
-      createdAt: '2026-07-13T10:00:00.000Z',
+      created_at: '2026-07-13T10:00:00.000Z',
     })
     expect(out).toBe('status: running\njob_id: job_abc\ncreated: 2026-07-13T10:00:00.000Z')
   })
 
   it('appends an error line when the job failed', () => {
     const out = renderJobStatusText({
-      jobId: 'job_bad',
+      job_id: 'job_bad',
       status: 'failed',
-      createdAt: '2026-07-13T10:00:00.000Z',
+      created_at: '2026-07-13T10:00:00.000Z',
       error: 'upstream timeout',
     })
     expect(out).toContain('status: failed')
@@ -152,9 +167,9 @@ describe('renderJobStatusText', () => {
 
   it('appends a usage footer when the job is done', () => {
     const out = renderJobStatusText({
-      jobId: 'job_done',
+      job_id: 'job_done',
       status: 'done',
-      createdAt: '2026-07-13T10:00:00.000Z',
+      created_at: '2026-07-13T10:00:00.000Z',
       response_meta: { usage: { credits: 2, proxy: 'advanced', cache_hit: false } },
     })
     expect(out).toContain('status: done')

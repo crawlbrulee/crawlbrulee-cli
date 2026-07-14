@@ -1,21 +1,18 @@
-# 🍮 crawlbrulee CLI
+# 🍮 crawlbrulee cli
 
-The official command-line interface for the [crawlbrulee](https://crawlbrulee.com) web-scraping API. Scrape pages, map sites, and inspect your account from the terminal.
+the official command-line interface for the [crawlbrulee](https://crawlbrulee.com) web-scraping api. scrape pages, map sites, and inspect your account from the terminal.
 
 - `npx`-runnable — zero install.
-- Wraps the [`@crawlbrulee/sdk`](https://www.npmjs.com/package/@crawlbrulee/sdk) under the hood; the CLI is just an argparse/formatter on top.
-- TTY-aware output: text in a terminal, JSON when piped, both forceable.
-- Auth via `crawlbrulee login`, `CRAWLBRULEE_API_KEY`, or a per-call `--api-key`.
+- wraps [`@crawlbrulee/sdk`](https://www.npmjs.com/package/@crawlbrulee/sdk) — the cli is an argument parser and output formatter over the sdk.
+- TTY-aware output: text in a terminal, json when piped, either forceable.
+- authenticate with `crawlbrulee login`, `CRAWLBRULEE_API_KEY`, or a per-call `--api-key`.
 
-> **Status:** v3.x. The command surface is stable; flag additions are minor-version bumps.
->
-> **Breaking in v3:** the scrape command moved under a `scrape` group — use
-> `crawlbrulee scrape url <url>` (was `crawlbrulee scrape <url>`). This made room for the
-> async-job subcommands `scrape status`, `scrape result`, and `scrape wait`.
+this readme covers the cli itself — its commands, flags, and output. for how the api behaves — endpoints, parameters, and error semantics — please see our
+[api docs](https://crawlbrulee.com/docs).
 
 ---
 
-## Install
+## install
 
 ```bash
 # one-off — recommended
@@ -27,9 +24,9 @@ npm install -g crawlbrulee
 # yarn global add crawlbrulee
 ```
 
-Once installed, `crawlbrulee` is on `$PATH`. Run `crawlbrulee --help` for the top-level summary or `crawlbrulee <command> --help` for any command.
+once installed, `crawlbrulee` is on `$PATH`. run `crawlbrulee --help` for the top-level summary or `crawlbrulee <command> --help` for any command.
 
-## First-run flow
+## first-run flow
 
 ```bash
 # 1. Save your key (paste it interactively, or pass --api-key)
@@ -42,7 +39,7 @@ crawlbrulee view-config
 crawlbrulee scrape url https://example.com
 ```
 
-You can also skip `login` entirely and authenticate per-call:
+you can also skip `login` entirely and authenticate per-call:
 
 ```bash
 export CRAWLBRULEE_API_KEY="cwbl_..."
@@ -51,11 +48,11 @@ crawlbrulee scrape url https://example.com
 
 ---
 
-## Commands
+## commands
 
 ### `crawlbrulee scrape url <url>`
 
-Scrape a URL. Default extraction is `markdown + metadata`.
+scrape a url. default extraction is `markdown + metadata`.
 
 ```bash
 crawlbrulee scrape url https://example.com                # markdown to stdout
@@ -67,27 +64,31 @@ crawlbrulee scrape url https://example.com --proxy advanced --require-js
 crawlbrulee scrape url https://example.com -o out.json
 ```
 
-Every scrape response carries a `response_meta.usage` envelope — `{ credits, proxy, cache_hit }` — where
+every scrape response carries a `response_meta.usage` envelope — `{ credits, proxy, cache_hit }` — where
 `credits` is what the call cost (`0` on a cache hit), `proxy` is the **resolved** tier actually
 used (`none` | `basic` | `advanced`, never `auto`), and `cache_hit` says whether the result came
-from cache. In text mode this is printed as a trailing comment, e.g.
-`# usage: 3 credits · proxy advanced · cache_hit false`; in JSON it's the `response_meta.usage` object.
-Page metadata (title, OG/Twitter tags, etc.) is returned under `metadata`.
+from cache. 
+* in text mode this is printed as a trailing comment, e.g. `# usage: 3 credits · proxy advanced · cache_hit false`; 
+* in json it's the `response_meta.usage` object. page metadata (title, OG/Twitter tags, etc.) is returned under `metadata`.
 
-**Extract toggles** — pick one or more; if any are given they replace the default.
+**extract toggles** — pick one or more; if any are given they replace the default.
 
-| Flag             | Short | Effect                                  |
+| flag             | short | effect                                  |
 | ---------------- | ----- | --------------------------------------- |
 | `--markdown`     | `-m`  | extract markdown                        |
-| `--cleaned-html` | `-c`  | extract main-content HTML               |
-| `--raw-html`     | `-r`  | extract raw HTML                        |
+| `--cleaned-html` | `-c`  | extract main-content html               |
+| `--raw-html`     | `-r`  | extract raw html                        |
 | `--links`        | `-l`  | extract all links                       |
 | `--images`       | `-i`  | extract inline images                   |
 | `--screenshot`   | `-ss` | capture a screenshot (see syntax below) |
 | `--all`          | —     | every extract field at once             |
 | `--no-metadata`  | —     | omit page metadata from the response    |
 
-**Screenshot syntax (`-ss` / `--screenshot`)** — positional, comma-separated:
+`--images` returns absolute image urls — relative `src`s are resolved against the page url
+and any query string is preserved. every extract field is documented under
+[extraction](https://crawlbrulee.com/docs/scrape/extraction).
+
+**screenshot syntax (`-ss` / `--screenshot`)** — positional, comma-separated:
 
 ```
 -ss
@@ -97,15 +98,18 @@ Page metadata (title, OG/Twitter tags, etc.) is returned under `metadata`.
 -ss <mode>,<width>,<height>,<device>,<slice-height>
 ```
 
-| Position | Values                              | Default              |
+| position | values                              | default              |
 | -------- | ----------------------------------- | -------------------- |
 | 1        | `viewport` \| `full` \| `full_page` | `full_page`          |
-| 2        | width (positive int)                | server default       |
-| 3        | height (positive int)               | server default       |
+| 2        | width (int, 16–10000)               | server default       |
+| 3        | height (int, 16–10000)              | server default       |
 | 4        | `desktop` \| `mobile`               | `desktop`            |
 | 5        | slice-height (≥ 500)                | none (no tile slice) |
 
-`full` is a typeable shortcut for `full_page`. Positions are strictly left-to-right — to set position N you must also fill 1..N-1.
+in rare cases a screenshot can't be captured; when that happens you still get everything else
+you requested and the response leaves out the `screenshot` field.
+
+`full` is a typeable shortcut for `full_page`. positions are strictly left-to-right — to set position N you must also fill 1..N-1. a width or height outside `16–10000` is rejected up front with a clear message. full capture options: [screenshots](https://crawlbrulee.com/docs/scrape/screenshots).
 
 ```bash
 crawlbrulee scrape url https://x.com -ss viewport
@@ -114,7 +118,7 @@ crawlbrulee scrape url https://x.com -ss full,1920,1080,mobile
 crawlbrulee scrape url https://x.com -ss full,1280,720,desktop,800   # sliced
 ```
 
-**Other scrape flags:**
+**other scrape flags:**
 
 ```
 --proxy <basic|advanced|auto>        default auto (basic tier first, escalates to advanced on failure)
@@ -126,11 +130,17 @@ crawlbrulee scrape url https://x.com -ss full,1280,720,desktop,800   # sliced
 -o, --output <file>                  write to a file instead of stdout
 ```
 
-**Async scrape**
+what each proxy tier does, and how `--country`/`--locale` steer egress, is documented under
+[proxies & location](https://crawlbrulee.com/docs/proxies). `--cache-max-age` semantics are
+covered in [caching](https://crawlbrulee.com/docs/scrape/caching). for the complete request
+contract behind these flags, see the [scrape endpoint](https://crawlbrulee.com/docs/scrape)
+reference.
 
-Submit the scrape as a background job and get a `job_id` back immediately instead of
-holding the connection open until the page is ready. Good for heavy JS rendering or
-long-page screenshots. By default `--async` prints the `job_id` and exits; add `--wait` to
+**async scrape**
+
+submit the scrape as a background job and get a `job_id` back immediately instead of
+holding the connection open until the page is ready. good for heavy js rendering or
+long-page screenshots. by default `--async` prints the `job_id` and exits; add `--wait` to
 poll to completion and print the result in one command.
 
 ```
@@ -160,16 +170,20 @@ crawlbrulee scrape url https://example.com --async \
   --webhook-metadata '{"order":"abc","attempt":2}'
 ```
 
-The webhook is delivered as a single signed `scrape.complete` POST when the job reaches a
-terminal state; `--webhook-metadata` must be a JSON **object** and is returned verbatim in
-the webhook payload's `data.metadata`. Configure the signing secret in the dashboard
+the webhook is delivered as a single signed `scrape.complete` POST when the job reaches a
+terminal state; `--webhook-metadata` must be a json **object** and is returned verbatim in
+the webhook payload's `data.metadata`. configure the signing secret in the dashboard
 (Account → Webhooks). `--wait` requires `--async` (and `--interval`/`--timeout` require
 `--wait`); `--webhook-url`/`--webhook-metadata` require `--async`, and `--webhook-metadata`
-requires `--webhook-url`; invalid JSON fails with a clear error.
+requires `--webhook-url`; invalid json fails with a clear error.
+
+the job lifecycle is documented under [async scrape](https://crawlbrulee.com/docs/scrape/async);
+the delivery contract and payload shape under [webhooks](https://crawlbrulee.com/docs/scrape/webhooks),
+with the signature scheme in [webhook verification](https://crawlbrulee.com/docs/webhook-verification).
 
 ### `crawlbrulee scrape status <job-id>`
 
-Look up the current state of an async job — `pending`, `running`, `done`, or `failed`.
+look up the current state of an async job — `pending`, `running`, `done`, or `failed`.
 
 ```bash
 crawlbrulee scrape status job_abc123
@@ -178,13 +192,13 @@ crawlbrulee scrape status job_abc123
 # created: 2026-07-13T10:00:00.000Z
 ```
 
-When the job is `done`, the status carries the `response_meta.usage` envelope; when it
+when the job is `done`, the status carries the `response_meta.usage` envelope; when it
 `failed`, an `# error: …` line explains why.
 
 ### `crawlbrulee scrape result <job-id>`
 
-Fetch the result of a completed async job. Renders exactly like a synchronous `scrape url`.
-If the job isn't finished yet, it errors — check `scrape status` first, or use `scrape wait`.
+fetch the result of a completed async job. renders exactly like a synchronous `scrape url`.
+if the job isn't finished yet, it errors — check `scrape status` first, or use `scrape wait`.
 
 ```bash
 crawlbrulee scrape result job_abc123
@@ -193,7 +207,7 @@ crawlbrulee scrape result job_abc123 --json | jq .markdown
 
 ### `crawlbrulee scrape wait <job-id>`
 
-Poll an existing job until it reaches a terminal state, then print the result — the
+poll an existing job until it reaches a terminal state, then print the result — the
 `wait_for_scrape` equivalent for a `job_id` you already have.
 
 ```bash
@@ -203,12 +217,12 @@ crawlbrulee scrape wait job_abc123 --timeout 0                  # wait indefinit
 ```
 
 `--interval`/`--timeout` are in **seconds** (defaults: poll every 2s, time out after 300s;
-`--timeout 0` waits forever). While waiting in a terminal it prints a one-line `waiting for
+`--timeout 0` waits forever). while waiting in a terminal it prints a one-line `waiting for
 job …` note to stderr so stdout stays clean for piping; press Ctrl-C to cancel.
 
 ### `crawlbrulee map <url>`
 
-List URLs discovered on a site (sitemap + homepage crawl, deduped).
+list urls discovered on a site (sitemap + homepage crawl, deduped).
 
 ```bash
 crawlbrulee map https://example.com
@@ -220,9 +234,9 @@ crawlbrulee map https://example.com --country DE
 crawlbrulee map https://example.com -o links.txt
 ```
 
-| Flag                    | Effect                                                                     |
+| flag                    | effect                                                                     |
 | ----------------------- | -------------------------------------------------------------------------- |
-| `--limit <n>`           | URLs per page (API max 10000)                                              |
+| `--limit <n>`           | urls per page (api max 10000)                                              |
 | `--page <n>`            | page number (1-indexed)                                                    |
 | `--sitemap-only`        | skip homepage extraction, use `sitemap.xml` only                           |
 | `--internal-only`       | same-domain links only                                                     |
@@ -233,49 +247,81 @@ crawlbrulee map https://example.com -o links.txt
 | `--country <iso>`       | ISO 3166-1 alpha-2 country — proxy egress hint (eu / europe also accepted) |
 | `-o, --output <file>`   | write to a file instead of stdout                                          |
 
-The map response's `response_meta` carries the same `usage` envelope (`{ credits, proxy, cache_hit }`)
+the map response's `response_meta` carries the same `usage` envelope (`{ credits, proxy, cache_hit }`)
 alongside its `pagination`/`truncation` blocks; text mode appends it as a `# usage: …` comment.
+see the [map endpoint](https://crawlbrulee.com/docs/map) for discovery rules and pagination semantics.
 
 ### `crawlbrulee usage`
 
-Show the current billing-cycle usage and limits for the active API token.
+show the current billing-cycle usage and limits for the active api token.
 
 ```bash
 crawlbrulee usage
+# Total credits:      10000
+# Used credits:       1243
+# Available credits:  8757
+# Used quota:         12.43%
+# Max concurrency:    10
+# Usage resets at:    2026-08-01T00:00:00.000Z
+
 crawlbrulee usage --json | jq .available_credits
 ```
 
+the json form carries `total_credits`, `used_credits`, `available_credits`, `used_quota_percent`, `max_concurrency`, and `usage_reset`. what a call costs, and how credits are counted, is documented under [credits & pricing](https://crawlbrulee.com/docs/credits-and-pricing).
+
 ### `crawlbrulee whoami`
 
-Print the organization name and identifying preview of the active API token.
+print the organization name and token identity for the active api token — a quick way to confirm which key you're using.
 
 ```bash
 crawlbrulee whoami
+# Organization: Acme Inc
+# Token name:   ci-bot
+# Token:        cwbl_…AB12
 ```
+
+json fields: `organization_name`, `token_name`, `token_preview`. the token is shown only as a masked preview — the full key is never echoed.
 
 ### `crawlbrulee login` / `logout` / `view-config`
 
 ```bash
-crawlbrulee login                          # prompt for key
+crawlbrulee login                          # prompt for the key (input is hidden)
 crawlbrulee login --api-key cwbl_…         # non-interactive
 crawlbrulee login --api-url https://staging-api.crawlbrulee.com
-crawlbrulee logout                         # wipe stored credentials
-crawlbrulee view-config                    # print resolved config (key masked)
+crawlbrulee logout                         # remove stored credentials
+crawlbrulee view-config                    # print the saved config (key masked)
 ```
+
+`login` writes the key (and optional base url) to the config file and confirms with a masked line:
+
+```
+saved (api_key: cwbl_…AB12)
+```
+
+`view-config` prints the saved base url and masked key, and flags any environment variable that overrides the file:
+
+```
+api_url: https://api.crawlbrulee.com
+api_key: cwbl_…AB12
+# $CRAWLBRULEE_API_KEY is set in the environment — overrides config file
+```
+
+keys are masked as `<prefix>…<last-4>` — the full key is never echoed.
 
 ---
 
-## Auth and configuration
+## auth and configuration
 
-The CLI resolves credentials in this order for every request:
+keys are minted in the dashboard; see [authentication](https://crawlbrulee.com/docs/authentication)
+for how the api consumes them. the cli resolves credentials in this order for every request:
 
 1. `--api-key` / `--api-url` flags
-2. Environment: `CRAWLBRULEE_API_KEY` / `CRAWLBRULEE_API_URL`
-3. Config file written by `crawlbrulee login`
+2. environment: `CRAWLBRULEE_API_KEY` / `CRAWLBRULEE_API_URL`
+3. config file written by `crawlbrulee login`
 
-Config file location:
+config file location:
 
-| Platform | Path                                                        |
+| platform | path                                                        |
 | -------- | ----------------------------------------------------------- |
 | macOS    | `~/Library/Application Support/crawlbrulee/config.json`     |
 | Linux    | `$XDG_CONFIG_HOME/crawlbrulee/config.json` or `~/.config/…` |
@@ -283,22 +329,22 @@ Config file location:
 
 POSIX hosts chmod the file to `0600` for secret hygiene. `XDG_CONFIG_HOME` is honored on every platform when set.
 
-The default base URL is `https://api.crawlbrulee.com`. Override with `--api-url` or `CRAWLBRULEE_API_URL` only if you have a staging endpoint or a self-hosted gateway.
+the default base url is `https://api.crawlbrulee.com`. override with `--api-url` or `CRAWLBRULEE_API_URL` only if you have a staging endpoint or a self-hosted gateway.
 
 ---
 
-## Output convention
+## output convention
 
 stdout is **TTY-aware**:
 
-- Terminal (TTY) → **text** by default.
-- Piped, redirected to a file, or `-o <file>` → **JSON** by default.
-- Override with `--json` (force JSON) or `--text` (force human-readable).
-- `--compact` produces one-line JSON (only meaningful with `--json`).
-- Errors go to stderr, formatted as `error: <name> — <message>`.
-- Exit code is `0` on success, `1` on any failure.
+- terminal (TTY) → **text** by default.
+- piped, redirected to a file, or `-o <file>` → **json** by default.
+- override with `--json` (force json) or `--text` (force human-readable).
+- `--compact` produces one-line json (only meaningful with `--json`).
+- errors go to stderr, formatted as `error: <name> — <message>`.
+- exit code is `0` on success, `1` on any failure.
 
-Examples:
+examples:
 
 ```bash
 crawlbrulee scrape url https://example.com               # markdown title + body
@@ -310,22 +356,26 @@ crawlbrulee map  https://example.com --text > links.txt  # newline-delimited URL
 
 ---
 
-## Errors
+## errors
 
-Errors are surfaced from the underlying SDK and rendered with a short hint when one is available:
+errors come from the sdk and from the cli's own validation. they go to stderr as
+`error: <name> — <message>`, with a short actionable hint when one applies:
 
 ```
 error: too_many_requests — please slow down (retry after 12000ms)
 error: usage_allocation_error — out of credits (reason: credit_limit)
 error: antibot_blocked — protected page (try --proxy advanced or --require-js)
 error: invalid_url — not a valid URL
+error: not logged in — run `crawlbrulee login` or set CRAWLBRULEE_API_KEY
 ```
 
-See the [SDK error reference](https://www.npmjs.com/package/@crawlbrulee/sdk#errors) for the exhaustive list of `errorName`s.
+the exit code is `1` on any failure and `0` on success, so you can branch on it in scripts.
+the api docs carry the canonical [error reference](https://crawlbrulee.com/docs/errors) — every
+error name, what causes it, and how to recover.
 
 ---
 
-## Building from source
+## building from source
 
 ```bash
 git clone https://github.com/crawlbrulee/crawlbrulee-cli.git
@@ -338,15 +388,15 @@ pnpm build        # tsup → dist/
 ./dist/index.js --help
 ```
 
-Tested on Node.js 20+. The CLI bundles to a single ESM entry with a `#!/usr/bin/env node` shebang.
+tested on Node.js 20+. the cli bundles to a single ESM entry with a `#!/usr/bin/env node` shebang.
 
-## Related projects
+## related projects
 
-- [`@crawlbrulee/sdk`](https://www.npmjs.com/package/@crawlbrulee/sdk) — the TypeScript / JavaScript SDK this CLI wraps.
-- [crawlbrulee MCP server](https://github.com/crawlbrulee/crawlbrulee-mcp) — exposes the API as MCP tools for AI agents (uses the SDK).
+- [`@crawlbrulee/sdk`](https://www.npmjs.com/package/@crawlbrulee/sdk) — the TypeScript / JavaScript sdk this cli wraps.
+- [crawlbrulee mcp server](https://github.com/crawlbrulee/crawlbrulee-mcp) — exposes the api as mcp tools for ai agents (uses the sdk).
 
 ---
 
-## License
+## license
 
 [AGPL-3.0-only](./LICENSE)
