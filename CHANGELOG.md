@@ -4,6 +4,11 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+
+## 3.1.1 (2026-07-14)
+
+minor changes & adjustments to the README
+
 ## 3.1.0 (2026-07-14)
 
 tracks a wave of server-side behavior changes. no flags were removed or renamed.

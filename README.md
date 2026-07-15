@@ -1,5 +1,8 @@
 # 🍮 crawlbrulee cli
 
+[![npm](https://img.shields.io/npm/v/crawlbrulee?style=flat-square&label=npm)](https://www.npmjs.com/package/crawlbrulee)
+[![license](https://img.shields.io/npm/l/crawlbrulee?style=flat-square&label=license)](./LICENSE)
+
 the official command-line interface for the [crawlbrulee](https://crawlbrulee.com) web-scraping api. scrape pages, map sites, and inspect your account from the terminal.
 
 - `npx`-runnable — zero install.
@@ -9,6 +12,8 @@ the official command-line interface for the [crawlbrulee](https://crawlbrulee.co
 
 this readme covers the cli itself — its commands, flags, and output. for how the api behaves — endpoints, parameters, and error semantics — please see our
 [api docs](https://crawlbrulee.com/docs).
+
+**get a free api key** → [dashboard.crawlbrulee.com](https://dashboard.crawlbrulee.com)
 
 ---
 
@@ -70,6 +75,8 @@ used (`none` | `basic` | `advanced`, never `auto`), and `cache_hit` says whether
 from cache. 
 * in text mode this is printed as a trailing comment, e.g. `# usage: 3 credits · proxy advanced · cache_hit false`; 
 * in json it's the `response_meta.usage` object. page metadata (title, OG/Twitter tags, etc.) is returned under `metadata`.
+
+non-fatal notices ride along as `warnings` (e.g. `screenshot_truncated`) — in text mode they print as `# warning: <code>` lines, in json on the `warnings` array. and if you request an extract that doesn't apply to the content type (e.g. `markdown` of a pdf), the field name comes back in `unsupported_fields` with the rest of the payload still returned.
 
 **extract toggles** — pick one or more; if any are given they replace the default.
 
@@ -173,7 +180,7 @@ crawlbrulee scrape url https://example.com --async \
 the webhook is delivered as a single signed `scrape.complete` POST when the job reaches a
 terminal state; `--webhook-metadata` must be a json **object** and is returned verbatim in
 the webhook payload's `data.metadata`. configure the signing secret in the dashboard
-(Account → Webhooks). `--wait` requires `--async` (and `--interval`/`--timeout` require
+(account → webhooks). `--wait` requires `--async` (and `--interval`/`--timeout` require
 `--wait`); `--webhook-url`/`--webhook-metadata` require `--async`, and `--webhook-metadata`
 requires `--webhook-url`; invalid json fails with a clear error.
 
@@ -388,12 +395,19 @@ pnpm build        # tsup → dist/
 ./dist/index.js --help
 ```
 
-tested on Node.js 20+. the cli bundles to a single ESM entry with a `#!/usr/bin/env node` shebang.
+tested on Node.js 22+. the cli bundles to a single ESM entry with a `#!/usr/bin/env node` shebang.
 
-## related projects
+## part of the crawlbrulee toolkit
 
-- [`@crawlbrulee/sdk`](https://www.npmjs.com/package/@crawlbrulee/sdk) — the TypeScript / JavaScript sdk this cli wraps.
-- [crawlbrulee mcp server](https://github.com/crawlbrulee/crawlbrulee-mcp) — exposes the api as mcp tools for ai agents (uses the sdk).
+one api, many ways to call it:
+
+- **[js/ts sdk](https://github.com/crawlbrulee/crawlbrulee-js)** — `@crawlbrulee/sdk` (the sdk this cli wraps)
+- **[python sdk](https://github.com/crawlbrulee/crawlbrulee-py)** — `crawlbrulee` on pypi
+- **[cli](https://github.com/crawlbrulee/crawlbrulee-cli)** — `npx crawlbrulee` (this one)
+- **[mcp server](https://github.com/crawlbrulee/crawlbrulee-mcp)** — `@crawlbrulee/mcp`, for ai agents
+- **[agent skills](https://github.com/crawlbrulee/crawlbrulee-skills)** — for skills-aware coding agents
+
+docs: [crawlbrulee.com/docs](https://crawlbrulee.com/docs) · dashboard: [dashboard.crawlbrulee.com](https://dashboard.crawlbrulee.com)
 
 ---
 
