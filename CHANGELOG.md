@@ -4,6 +4,14 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+## 3.1.2 (2026-07-15)
+
+- moves to `@crawlbrulee/sdk` `^0.7.0`, whose proxy tier types now list exactly the supported
+  tiers: `basic`, `advanced`, `auto` for `--proxy`, and `basic` | `advanced` for the resolved
+  tier reported in `response_meta.usage.proxy`. no behaviour change — `--proxy` accepted the
+  same values before.
+- fixes `crawlbrulee --version`, which reported a stale version (it had drifted behind the
+  released package).
 
 ## 3.1.1 (2026-07-14)
 
@@ -62,8 +70,8 @@ job …` note to stderr in a terminal; Ctrl-C cancels.
   `response_meta.usage` object — `{ credits, proxy, cache_hit }`. in text mode the cli
   prints it as a trailing `# usage: <credits> credits · proxy <tier> · cache_hit <bool>`
   comment; in json it is passed through verbatim. `credits` is `0` on a cache
-  hit and `proxy` is the **resolved** tier actually used (`none` | `basic` |
-  `advanced`, never `auto`). the map response's `response_meta` also carries the
+  hit and `proxy` is the **resolved** tier actually used (`basic` | `advanced`,
+  never `auto`). the map response's `response_meta` also carries the
   `pagination`/`truncation` blocks.
 
 > scrape page metadata is read from `metadata` (the per-page title/description/

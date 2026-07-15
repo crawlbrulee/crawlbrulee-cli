@@ -71,10 +71,11 @@ crawlbrulee scrape url https://example.com -o out.json
 
 every scrape response carries a `response_meta.usage` envelope — `{ credits, proxy, cache_hit }` — where
 `credits` is what the call cost (`0` on a cache hit), `proxy` is the **resolved** tier actually
-used (`none` | `basic` | `advanced`, never `auto`), and `cache_hit` says whether the result came
-from cache. 
-* in text mode this is printed as a trailing comment, e.g. `# usage: 3 credits · proxy advanced · cache_hit false`; 
-* in json it's the `response_meta.usage` object. page metadata (title, OG/Twitter tags, etc.) is returned under `metadata`.
+used (`basic` | `advanced`, never `auto`), and `cache_hit` says whether the result came
+from cache.
+
+- in text mode this is printed as a trailing comment, e.g. `# usage: 3 credits · proxy advanced · cache_hit false`;
+- in json it's the `response_meta.usage` object. page metadata (title, OG/Twitter tags, etc.) is returned under `metadata`.
 
 non-fatal notices ride along as `warnings` (e.g. `screenshot_truncated`) — in text mode they print as `# warning: <code>` lines, in json on the `warnings` array. and if you request an extract that doesn't apply to the content type (e.g. `markdown` of a pdf), the field name comes back in `unsupported_fields` with the rest of the payload still returned.
 

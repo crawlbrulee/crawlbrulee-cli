@@ -61,9 +61,9 @@ describe('renderScrapeText', () => {
     const out = renderScrapeText({
       url: 'https://example.com',
       markdown: 'body',
-      response_meta: { usage: { credits: 0, proxy: 'none', cache_hit: true } },
+      response_meta: { usage: { credits: 0, proxy: 'basic', cache_hit: true } },
     })
-    expect(out).toContain('# usage: 0 credits · proxy none · cache_hit true')
+    expect(out).toContain('# usage: 0 credits · proxy basic · cache_hit true')
   })
 
   it('falls back to cleaned_html when no markdown is present', () => {

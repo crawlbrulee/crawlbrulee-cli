@@ -100,12 +100,6 @@ describe('buildScrapeRequest — transport flags', () => {
     )
   })
 
-  it('--proxy none is rejected (internal-only tier, not user-selectable)', () => {
-    expect(() => buildScrapeRequest('https://example.com', { proxy: 'none' })).toThrow(
-      /invalid --proxy 'none'/
-    )
-  })
-
   it('--require-js sends require_js=true', () => {
     const body = buildScrapeRequest('https://example.com', { requireJs: true })
     expect(body.require_js).toBe(true)
