@@ -1,6 +1,6 @@
 {
   "name": "crawlbrulee",
-  "version": "3.1.2",
+  "version": "3.1.3",
   "description": "Official CLI for the crawlbrulee API — scrape, map, and inspect usage from your terminal.",
   "keywords": [
     "crawlbrulee",
@@ -38,8 +38,8 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
@@ -60,9 +60,9 @@
     "@types/node": "^22.10.0",
     "eslint": "^9.18.0",
     "prettier": "^3.4.0",
-    "tsup": "^8.3.0",
-    "typescript": "^5.7.0",
-    "typescript-eslint": "^8.20.0",
+    "tsdown": "^0.22.11",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.64.0",
     "vitest": "^3.2.6"
   }
 }

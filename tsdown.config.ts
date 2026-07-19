@@ -1,4 +1,4 @@
-import { defineConfig } from 'tsup'
+import { defineConfig } from 'tsdown'
 
 export default defineConfig({
   entry: ['src/index.ts'],
@@ -8,9 +8,9 @@ export default defineConfig({
   clean: true,
   dts: false,
   sourcemap: false,
-  splitting: false,
   treeshake: true,
   minify: false,
+  outExtensions: () => ({ js: '.js' }),
   banner: {
     js: '#!/usr/bin/env node',
   },

@@ -4,6 +4,13 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+## 3.1.3 (2026-07-19)
+
+### changed
+
+- internal: the cli is now built with tsdown (previously tsup) on TypeScript 6. no changes to
+  commands, flags, or output.
+
 ## 3.1.2 (2026-07-15)
 
 - moves to `@crawlbrulee/sdk` `^0.7.0`, whose proxy tier types now list exactly the supported
