@@ -46,9 +46,11 @@ export function renderScrapeText(res: ScrapeResponse): string {
       lines.push(`screenshot: ${res.screenshot.url}`)
     }
   }
-  // In rare cases a screenshot can't be captured; when that happens the response
-  // leaves out the `screenshot` field entirely, so an absent screenshot renders
-  // nothing — same as any other output that wasn't returned.
+  // In rare cases a screenshot can't be captured. When other outputs were also
+  // requested, the response just leaves out the `screenshot` field, so an absent
+  // screenshot renders nothing — same as any other output that wasn't returned.
+  // A screenshot-only call never reaches this renderer: it fails with an
+  // `unsupported_screenshot_output` error instead.
 
   if (!body) {
     if (res.links && res.links.length > 0) {

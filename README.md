@@ -70,12 +70,13 @@ crawlbrulee scrape url https://example.com -o out.json
 ```
 
 every scrape response carries a `response_meta.usage` envelope — `{ credits, proxy, cache_hit }` — where
-`credits` is what the call cost (`0` on a cache hit), `proxy` is the **resolved** tier actually
-used (`basic` | `advanced`, never `auto`), and `cache_hit` says whether the result came
+`credits` is what the call cost (`0` on a fully cached result — only parts still computed fresh,
+e.g. a newly produced screenshot-slice variant, are charged), `proxy` is the **resolved** tier
+actually used (`basic` | `advanced`, never `auto`), and `cache_hit` says whether the result came
 from cache.
 
 - in text mode this is printed as a trailing comment, e.g. `# usage: 3 credits · proxy advanced · cache_hit false`;
-- in json it's the `response_meta.usage` object. page metadata (title, OG/Twitter tags, etc.) is returned under `metadata`.
+- in json it's the `response_meta.usage` object. page metadata (title, OG/Twitter tags, etc.) is returned under `metadata`. `url` is the url actually scraped (after redirects, in cleaned canonical form) and `requested_url` is the url you requested, echoed verbatim.
 
 non-fatal notices ride along as `warnings` (e.g. `screenshot_truncated`) — in text mode they print as `# warning: <code>` lines, in json on the `warnings` array. and if you request an extract that doesn't apply to the content type (e.g. `markdown` of a pdf), the field name comes back in `unsupported_fields` with the rest of the payload still returned.
 
@@ -114,8 +115,9 @@ and any query string is preserved. every extract field is documented under
 | 4        | `desktop` \| `mobile`               | `desktop`            |
 | 5        | slice-height (≥ 500)                | none (no tile slice) |
 
-in rare cases a screenshot can't be captured; when that happens you still get everything else
-you requested and the response leaves out the `screenshot` field.
+in rare cases a screenshot can't be captured. if you requested other outputs too, you still get
+them and the response leaves out the `screenshot` field; a screenshot-only call errors with
+`unsupported_screenshot_output` instead, and you're not charged for it.
 
 `full` is a typeable shortcut for `full_page`. positions are strictly left-to-right — to set position N you must also fill 1..N-1. a width or height outside `16–10000` is rejected up front with a clear message. full capture options: [screenshots](https://crawlbrulee.com/docs/scrape/screenshots).
 

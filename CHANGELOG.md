@@ -4,6 +4,24 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+## 3.2.0 (2026-07-28)
+
+### changed
+
+- moves to `@crawlbrulee/sdk` `^0.9.0`, which types the `requested_url` response field (the
+  url you requested, echoed verbatim, alongside `url` — the url actually scraped, after
+  redirects, in cleaned canonical form) and names the `unsupported_screenshot_output` error.
+  the cli passes both through in `--json` output; no flags changed.
+
+### docs
+
+- corrected the cache-billing wording: `credits` is `0` on a **fully cached** result — parts
+  still computed fresh (e.g. a newly produced screenshot-slice variant) are charged.
+- corrected the screenshot-failure claim: when a screenshot can't be captured you still get
+  the other outputs you requested, with the `screenshot` field left out — but a
+  screenshot-only call errors with `unsupported_screenshot_output` instead, and isn't
+  charged.
+
 ## 3.1.3 (2026-07-19)
 
 ### changed
