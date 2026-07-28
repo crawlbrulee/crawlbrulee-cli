@@ -39,6 +39,7 @@ describe('renderScrapeText', () => {
   it('prints a title header followed by markdown body', () => {
     const out = renderScrapeText({
       url: 'https://example.com',
+      requested_url: 'https://example.com',
       markdown: '# Hello\n\nworld',
       metadata: { title: 'Example Domain' },
       response_meta: { usage: { credits: 1, proxy: 'basic', cache_hit: false } },
@@ -51,6 +52,7 @@ describe('renderScrapeText', () => {
   it('appends a usage footer with credits, resolved proxy, and cache_hit', () => {
     const out = renderScrapeText({
       url: 'https://example.com',
+      requested_url: 'https://example.com',
       markdown: 'body',
       response_meta: { usage: { credits: 3, proxy: 'advanced', cache_hit: false } },
     })
@@ -60,6 +62,7 @@ describe('renderScrapeText', () => {
   it('shows 0 credits and cache_hit true on a cache hit', () => {
     const out = renderScrapeText({
       url: 'https://example.com',
+      requested_url: 'https://example.com',
       markdown: 'body',
       response_meta: { usage: { credits: 0, proxy: 'basic', cache_hit: true } },
     })
@@ -69,6 +72,7 @@ describe('renderScrapeText', () => {
   it('falls back to cleaned_html when no markdown is present', () => {
     const out = renderScrapeText({
       url: 'https://example.com',
+      requested_url: 'https://example.com',
       cleaned_html: '<p>hi</p>',
       response_meta: { usage: { credits: 1, proxy: 'basic', cache_hit: false } },
     })
@@ -78,6 +82,7 @@ describe('renderScrapeText', () => {
   it('shows the screenshot URL with slice count when sliced', () => {
     const out = renderScrapeText({
       url: 'https://example.com',
+      requested_url: 'https://example.com',
       markdown: 'body',
       screenshot: {
         url: 'https://cdn/x.png',
@@ -116,6 +121,7 @@ describe('renderScrapeText', () => {
     // renders nothing.
     const res = {
       url: 'https://example.com',
+      requested_url: 'https://example.com',
       markdown: 'body',
       response_meta: { usage: { credits: 1, proxy: 'basic', cache_hit: false } },
     } as unknown as ScrapeResponse
@@ -127,6 +133,7 @@ describe('renderScrapeText', () => {
   it('lists links when no body was requested', () => {
     const out = renderScrapeText({
       url: 'https://example.com',
+      requested_url: 'https://example.com',
       links: [{ text: 't', href: 'https://a', internal: true }],
       response_meta: { usage: { credits: 1, proxy: 'basic', cache_hit: false } },
     })
@@ -136,6 +143,7 @@ describe('renderScrapeText', () => {
   it('appends warnings as comments', () => {
     const out = renderScrapeText({
       url: 'https://example.com',
+      requested_url: 'https://example.com',
       markdown: 'body',
       warnings: ['screenshot_truncated'],
       response_meta: { usage: { credits: 1, proxy: 'basic', cache_hit: false } },
