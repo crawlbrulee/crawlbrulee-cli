@@ -4,6 +4,15 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+## 3.2.1 (2026-08-03)
+
+### changed
+
+- moves to `@crawlbrulee/sdk` `^0.10.0`, which drops `overage_hard_cap` from
+  `UsageAllocationReason`. the api now reports every credit-exhaustion refusal as
+  `credit_limit`. no command, flag, or json output changes — the cli never printed the
+  reason code on its own, so this only keeps the sdk floor current.
+
 ## 3.2.0 (2026-07-28)
 
 ### changed
