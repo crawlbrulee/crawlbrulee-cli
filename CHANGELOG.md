@@ -21,6 +21,12 @@ this project follows [Semantic Versioning](https://semver.org). breaking changes
   and what each one means for the payload, so a `# warning:` line is readable without a docs
   lookup. `links_truncated` / `inline_images_truncated` mean those arrays are incomplete;
   `raw_html_truncated` means the html is cut at a tag boundary, never mid-tag.
+- the warnings section gains the `*_unavailable` family — `links_unavailable`,
+  `inline_images_unavailable`, `metadata_unavailable` — which mean that section's extraction
+  failed and the field came back omitted or empty while the rest of the scrape succeeded. an
+  empty array carrying one of these is not a page that had none. it also records that warnings
+  are stored with the result, so cache hits and `result` fetches print them too, filtered to the
+  outputs you asked for — the readme previously said they appeared on fresh scrapes only.
 - `--links`, `--images` and `--raw-html` carry their per-page caps (30,000 links, 10,000 inline
   images, 10,000,000 characters of page body) instead of promising "all".
 - the `-ss` section documents the capture limits: a full-page capture scrolls up to 15,000px

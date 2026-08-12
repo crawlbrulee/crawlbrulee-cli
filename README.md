@@ -88,6 +88,16 @@ non-fatal notices ride along as `warnings` — in text mode they print as `# war
 | `raw_html_truncated`      | the page body exceeded 10,000,000 characters — the html is cut at a tag boundary, never mid-tag. |
 | `metadata_truncated`      | the page head exceeded 2,000,000 characters — `metadata` can be missing tags past the cut.       |
 
+a second family reports a section whose extraction failed outright — the field comes back omitted or empty while the rest of the scrape succeeds, so an empty array with one of these is not the same as a page that genuinely had none:
+
+| code                        | what it means for the payload                          |
+| --------------------------- | ------------------------------------------------------ |
+| `links_unavailable`         | link extraction failed — `links` is omitted or empty.  |
+| `inline_images_unavailable` | image extraction failed — `images` is omitted or empty. |
+| `metadata_unavailable`      | metadata extraction failed — `metadata` is omitted or empty. |
+
+the page body has no such code: if it can't be extracted the scrape fails outright rather than returning a hollow result, and isn't billed. warnings are stored with the result, so cache hits and `result` fetches report them too, filtered to the outputs you asked for.
+
 and if you request an extract that doesn't apply to the content type (e.g. `markdown` of a pdf), the field name comes back in `unsupported_fields` with the rest of the payload still returned.
 
 **extract toggles** — pick one or more; if any are given they replace the default.
