@@ -1,5 +1,10 @@
-import type { ScrapeResponse } from '@crawlbrulee/sdk'
-import { RateLimitError, UsageAllocationError, ValidationError } from '@crawlbrulee/sdk'
+import type { ApiErrorName, ScrapeResponse } from '@crawlbrulee/sdk'
+import {
+  CrawlbruleeError,
+  RateLimitError,
+  UsageAllocationError,
+  ValidationError,
+} from '@crawlbrulee/sdk'
 import { describe, expect, it } from 'vitest'
 
 import { formatError } from '../src/output/errors.js'
@@ -284,6 +289,20 @@ describe('formatError', () => {
     })
     expect(formatError(err)).toBe(
       'error: antibot_blocked — blocked (try --proxy advanced or --require-js)'
+    )
+  })
+
+  it('adds a retry hint for service_unavailable', () => {
+    // The cast goes away once the sdk floor types `service_unavailable` in
+    // `ApiErrorName`; the cli already has to handle the 503 today.
+    const errorName = 'service_unavailable' as ApiErrorName
+    const err = new CrawlbruleeError('backend unavailable', {
+      status: 503,
+      errorName,
+      response: { name: errorName, message: 'backend unavailable' },
+    })
+    expect(formatError(err)).toBe(
+      'error: service_unavailable — backend unavailable (temporary — safe to retry)'
     )
   })
 

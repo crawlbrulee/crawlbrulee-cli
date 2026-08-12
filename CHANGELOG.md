@@ -4,6 +4,32 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+## Unreleased
+
+### added
+
+- **a hint for `service_unavailable`** — the error line now ends in
+  `(temporary — safe to retry)`. the api answers a transient backend failure with a `503`
+  under this name, where it used to answer `401 invalid_credentials`, which read as "your key
+  is bad" and invited a pointless key rotation. the hint says plainly that the key is fine and
+  the call is worth retrying.
+
+### docs
+
+- the warnings section names every code the api can return — `screenshot_truncated`,
+  `links_truncated`, `inline_images_truncated`, `raw_html_truncated`, `metadata_truncated` —
+  and what each one means for the payload, so a `# warning:` line is readable without a docs
+  lookup. `links_truncated` / `inline_images_truncated` mean those arrays are incomplete;
+  `raw_html_truncated` means the html is cut at a tag boundary, never mid-tag.
+- `--links`, `--images` and `--raw-html` carry their per-page caps (30,000 links, 10,000 inline
+  images, 10,000,000 characters of page body) instead of promising "all".
+- the `-ss` section documents the capture limits: a full-page capture scrolls up to 15,000px
+  (past that you get the top of the page plus a `screenshot_truncated` warning), and slicing
+  returns at most 20 slices, with the last slice carrying the remainder.
+- the errors section gains a `service_unavailable` example and spells out what the exit code
+  does and does not tell you: it is `1` on any failure, so a script that needs to tell a
+  retryable failure from a permanent one has to read the error name.
+
 ## 3.2.1 (2026-08-03)
 
 ### changed

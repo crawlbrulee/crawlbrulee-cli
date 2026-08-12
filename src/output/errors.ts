@@ -18,8 +18,15 @@ function hintFor(err: CrawlbruleeError): string {
   if (err instanceof UsageAllocationError) {
     return ` (reason: ${err.reason})`
   }
-  if (err.errorName === 'antibot_blocked') {
+  // Read the code as a plain string: `service_unavailable` joins the sdk's
+  // `ApiErrorName` union in the next sdk release, and the current floor does
+  // not type it yet. Drop the widening once the floor moves.
+  const errorName: string | null = err.errorName
+  if (errorName === 'antibot_blocked') {
     return ' (try --proxy advanced or --require-js)'
+  }
+  if (errorName === 'service_unavailable') {
+    return ' (temporary — safe to retry)'
   }
   return ''
 }

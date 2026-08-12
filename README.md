@@ -78,7 +78,17 @@ from cache.
 - in text mode this is printed as a trailing comment, e.g. `# usage: 3 credits · proxy advanced · cache_hit false`;
 - in json it's the `response_meta.usage` object. page metadata (title, OG/Twitter tags, etc.) is returned under `metadata`. `url` is the url actually scraped (after redirects, in cleaned canonical form) and `requested_url` is the url you requested, echoed verbatim.
 
-non-fatal notices ride along as `warnings` (e.g. `screenshot_truncated`) — in text mode they print as `# warning: <code>` lines, in json on the `warnings` array. and if you request an extract that doesn't apply to the content type (e.g. `markdown` of a pdf), the field name comes back in `unsupported_fields` with the rest of the payload still returned.
+non-fatal notices ride along as `warnings` — in text mode they print as `# warning: <code>` lines, in json on the `warnings` array. an outsized page is truncated rather than refused, and the code says which part was cut:
+
+| code                      | what it means for the payload                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------------ |
+| `screenshot_truncated`    | the page was taller than the 15,000px scrolling-capture cap; you get the top of the page.        |
+| `links_truncated`         | more than 30,000 links on the page — the `links` array is cut at the cap and is incomplete.      |
+| `inline_images_truncated` | more than 10,000 inline images — the `images` array is cut at the cap and is incomplete.         |
+| `raw_html_truncated`      | the page body exceeded 10,000,000 characters — the html is cut at a tag boundary, never mid-tag. |
+| `metadata_truncated`      | the page head exceeded 2,000,000 characters — `metadata` can be missing tags past the cut.       |
+
+and if you request an extract that doesn't apply to the content type (e.g. `markdown` of a pdf), the field name comes back in `unsupported_fields` with the rest of the payload still returned.
 
 **extract toggles** — pick one or more; if any are given they replace the default.
 
@@ -87,14 +97,17 @@ non-fatal notices ride along as `warnings` (e.g. `screenshot_truncated`) — in 
 | `--markdown`     | `-m`  | extract markdown                        |
 | `--cleaned-html` | `-c`  | extract main-content html               |
 | `--raw-html`     | `-r`  | extract raw html                        |
-| `--links`        | `-l`  | extract all links                       |
-| `--images`       | `-i`  | extract inline images                   |
+| `--links`        | `-l`  | extract links (up to 30,000 per page)   |
+| `--images`       | `-i`  | extract inline images (up to 10,000)    |
 | `--screenshot`   | `-ss` | capture a screenshot (see syntax below) |
 | `--all`          | —     | every extract field at once             |
 | `--no-metadata`  | —     | omit page metadata from the response    |
 
 `--images` returns absolute image urls — relative `src`s are resolved against the page url
-and any query string is preserved. every extract field is documented under
+and any query string is preserved. `--links` and `--images` are capped per page at 30,000 and
+10,000 respectively, and `--raw-html` at 10,000,000 characters of page body; past a cap the
+output is truncated and the response carries the matching warning code (see the warnings table
+above). every extract field is documented under
 [extraction](https://crawlbrulee.com/docs/scrape/extraction).
 
 **screenshot syntax (`-ss` / `--screenshot`)** — positional, comma-separated:
@@ -114,6 +127,12 @@ and any query string is preserved. every extract field is documented under
 | 3        | height (int, 16–10000)              | server default       |
 | 4        | `desktop` \| `mobile`               | `desktop`            |
 | 5        | slice-height (≥ 500)                | none (no tile slice) |
+
+a full-page capture scrolls up to 15,000px. a taller page is captured to that height and the
+response carries a `screenshot_truncated` warning (`# warning: screenshot_truncated` in text
+mode), so you always know when you're looking at the top of a longer page. slicing returns at
+most 20 slices — if your slice-height would produce more, the last slice carries the remainder
+of the capture rather than the run being cut short.
 
 in rare cases a screenshot can't be captured. if you requested other outputs too, you still get
 them and the response leaves out the `screenshot` field; a screenshot-only call errors with
@@ -375,11 +394,19 @@ errors come from the sdk and from the cli's own validation. they go to stderr as
 error: too_many_requests — please slow down (retry after 12000ms)
 error: usage_allocation_error — out of credits (reason: credit_limit)
 error: antibot_blocked — protected page (try --proxy advanced or --require-js)
+error: service_unavailable — backend unavailable (temporary — safe to retry)
 error: invalid_url — not a valid URL
 error: not logged in — run `crawlbrulee login` or set CRAWLBRULEE_API_KEY
 ```
 
-the exit code is `1` on any failure and `0` on success, so you can branch on it in scripts.
+`service_unavailable` (HTTP 503) is a transient backend failure, not a problem with your api
+key — retry it with backoff rather than rotating credentials.
+
+the exit code is `1` on any failure and `0` on success, so you can branch on it in scripts. it
+tells you _that_ the call failed, not whether retrying will help: for that, read the error name.
+`too_many_requests`, `request_timeout` and `service_unavailable` are worth retrying with backoff;
+`invalid_credentials`, `invalid_url` and `validation_error` will fail the same way every time.
+the name is the word right after `error:` on the stderr line, in `--json` and text mode alike.
 the api docs carry the canonical [error reference](https://crawlbrulee.com/docs/errors) — every
 error name, what causes it, and how to recover.
 
