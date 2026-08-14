@@ -90,10 +90,10 @@ non-fatal notices ride along as `warnings` — in text mode they print as `# war
 
 a second family reports a section whose extraction failed outright — the field comes back omitted or empty while the rest of the scrape succeeds, so an empty array with one of these is not the same as a page that genuinely had none:
 
-| code                        | what it means for the payload                          |
-| --------------------------- | ------------------------------------------------------ |
-| `links_unavailable`         | link extraction failed — `links` is omitted or empty.  |
-| `inline_images_unavailable` | image extraction failed — `images` is omitted or empty. |
+| code                        | what it means for the payload                                |
+| --------------------------- | ------------------------------------------------------------ |
+| `links_unavailable`         | link extraction failed — `links` is omitted or empty.        |
+| `inline_images_unavailable` | image extraction failed — `images` is omitted or empty.      |
 | `metadata_unavailable`      | metadata extraction failed — `metadata` is omitted or empty. |
 
 the page body has no such code: if it can't be extracted the scrape fails outright rather than returning a hollow result, and isn't billed. warnings are stored with the result, so cache hits and `result` fetches report them too, filtered to the outputs you asked for.

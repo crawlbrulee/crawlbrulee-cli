@@ -4,7 +4,7 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
-## Unreleased
+## 3.2.2 (2026-08-14)
 
 ### added
 
@@ -13,6 +13,19 @@ this project follows [Semantic Versioning](https://semver.org). breaking changes
   under this name, where it used to answer `401 invalid_credentials`, which read as "your key
   is bad" and invited a pointless key rotation. the hint says plainly that the key is fine and
   the call is worth retrying.
+
+### fixed
+
+- **`crawlbrulee --version` reports the real version again.** `CLI_VERSION` is a literal kept
+  in step with `package.json` by hand, and 3.2.1 shipped without moving it — so every 3.2.1
+  install answered `3.2.0`, and bug reports carried a version that was never the one running.
+  a test now compares the two, the same guard the js and python sdks already carry.
+
+### changed
+
+- **`@crawlbrulee/sdk` moved to `^0.11.0`** (from `^0.10.0`), picking up
+  `ServiceUnavailableError` and the `ScrapeWarningCode` union. a `^` range on a `0.x`
+  dependency pins the minor, so this had to move by hand.
 
 ### docs
 

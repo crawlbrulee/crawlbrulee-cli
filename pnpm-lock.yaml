@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@crawlbrulee/sdk':
-        specifier: ^0.10.0
-        version: 0.10.0
+        specifier: ^0.11.0
+        version: 0.11.0
       '@inquirer/prompts':
         specifier: ^7.0.0
         version: 7.10.1(@types/node@22.19.19)
@@ -45,8 +45,8 @@ importers:
 
 packages:
 
-  '@crawlbrulee/sdk@0.10.0':
-    resolution: {integrity: sha512-YLPRSfTPtbBocGURe8ko6R0u3rDxtaeSru2/ZeM3fcXw1wDgwZO+402msPZ+Bd5M7UI1LzujdqsMDN270V6KEg==}
+  '@crawlbrulee/sdk@0.11.0':
+    resolution: {integrity: sha512-h49s/9r3HLrJGFSd/gbDgqedbIpAAgeDgLnMECyK43/6DKHxUY25YEg9S7hOX308J5o9h5QCWzGIy3m2yrJ2pA==}
     engines: {node: '>=22'}
 
   '@emnapi/core@1.11.2':
@@ -1553,7 +1553,7 @@ packages:
 
 snapshots:
 
-  '@crawlbrulee/sdk@0.10.0': {}
+  '@crawlbrulee/sdk@0.11.0': {}
 
   '@emnapi/core@1.11.2':
     dependencies:
