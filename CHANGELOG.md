@@ -4,6 +4,16 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+## 3.2.3 (2026-08-17)
+
+### changed
+
+- improved the advanced proxy tier guidance across the readme and error output. general
+  proxy and JavaScript-rendering guidance is documented separately from
+  `antibot_blocked`, keeping that error focused on the reported condition.
+- moved to `@crawlbrulee/sdk` `^0.11.1`, which carries the matching documentation
+  improvement. no command, flag, or JSON output shape changed.
+
 ## 3.2.2 (2026-08-14)
 
 ### added
