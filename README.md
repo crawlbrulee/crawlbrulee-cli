@@ -403,7 +403,7 @@ errors come from the sdk and from the cli's own validation. they go to stderr as
 ```
 error: too_many_requests — please slow down (retry after 12000ms)
 error: usage_allocation_error — out of credits (reason: credit_limit)
-error: antibot_blocked — protected page (try --proxy advanced or --require-js)
+error: antibot_blocked — protected page
 error: service_unavailable — backend unavailable (temporary — safe to retry)
 error: invalid_url — not a valid URL
 error: not logged in — run `crawlbrulee login` or set CRAWLBRULEE_API_KEY

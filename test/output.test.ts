@@ -281,15 +281,13 @@ describe('formatError', () => {
     )
   })
 
-  it('adds an antibot hint for antibot_blocked', () => {
+  it('does not suggest retry tactics for antibot_blocked', () => {
     const err = new ValidationError('blocked', {
       status: 403,
       errorName: 'antibot_blocked',
       response: { name: 'antibot_blocked', message: 'blocked' },
     })
-    expect(formatError(err)).toBe(
-      'error: antibot_blocked — blocked (try --proxy advanced or --require-js)'
-    )
+    expect(formatError(err)).toBe('error: antibot_blocked — blocked')
   })
 
   it('adds a retry hint for service_unavailable', () => {
