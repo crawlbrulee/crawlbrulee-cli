@@ -4,6 +4,13 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+## unreleased
+
+### changed
+
+- map usage now reports only `credits`, `engine`, and `proxy`. its text footer no longer
+  includes `slices`; scrape and terminal async-status footers still do.
+
 ## 4.0.0 (2026-08-30)
 
 ### breaking

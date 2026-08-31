@@ -286,8 +286,9 @@ crawlbrulee map https://example.com -o links.txt
 | `--country <iso>`       | ISO 3166-1 alpha-2 country — proxy egress hint (eu / europe also accepted) |
 | `-o, --output <file>`   | write to a file instead of stdout                                          |
 
-the map response's `response_meta` carries the same `usage` envelope (`{ credits, engine, proxy, screenshot_slices }`)
-alongside its `pagination`/`truncation` blocks; text mode appends it as a `# usage: …` comment.
+the map response's `response_meta` carries a `usage` envelope (`{ credits, engine, proxy }`)
+alongside its `pagination`/`truncation` blocks. text mode appends it as
+`# usage: <credits> credits · engine <engine> · proxy <proxy>`.
 see the [map endpoint](https://crawlbrulee.com/docs/map) for discovery rules and pagination semantics.
 
 ### `crawlbrulee usage`
