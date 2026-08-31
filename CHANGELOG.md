@@ -4,6 +4,16 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+## 4.0.0 (2026-08-30)
+
+### breaking
+
+- the text usage footer now reports `credits`, `engine`, `proxy`, and `slices`:
+  `# usage: 15 credits · engine browser · proxy advanced · slices 0`.
+- `--json` passes through the sdk's updated `response_meta.usage` shape, replacing
+  `cache_hit` with `engine` and `screenshot_slices`.
+- moves to `@crawlbrulee/sdk` `^0.12.0`.
+
 ## 3.2.3 (2026-08-17)
 
 ### changed

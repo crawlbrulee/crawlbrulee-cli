@@ -69,13 +69,13 @@ crawlbrulee scrape url https://example.com --proxy advanced --require-js
 crawlbrulee scrape url https://example.com -o out.json
 ```
 
-every scrape response carries a `response_meta.usage` envelope — `{ credits, proxy, cache_hit }` — where
+every scrape response carries a `response_meta.usage` envelope — `{ credits, engine, proxy, screenshot_slices }` — where
 `credits` is what the call cost (`0` on a fully cached result — only parts still computed fresh,
 e.g. a newly produced screenshot-slice variant, are charged), `proxy` is the **resolved** tier
-actually used (`basic` | `advanced`, never `auto`), and `cache_hit` says whether the result came
-from cache.
+actually used (`basic` | `advanced`, never `auto`). `engine` is `text`, `browser`, `screenshot`,
+or `cache`; `screenshot_slices` is the slice add-on charged for this request (`0` or `1`).
 
-- in text mode this is printed as a trailing comment, e.g. `# usage: 3 credits · proxy advanced · cache_hit false`;
+- in text mode this is printed as a trailing comment, e.g. `# usage: 15 credits · engine browser · proxy advanced · slices 0`;
 - in json it's the `response_meta.usage` object. page metadata (title, OG/Twitter tags, etc.) is returned under `metadata`. `url` is the url actually scraped (after redirects, in cleaned canonical form) and `requested_url` is the url you requested, echoed verbatim.
 
 non-fatal notices ride along as `warnings` — in text mode they print as `# warning: <code>` lines, in json on the `warnings` array. an outsized page is truncated rather than refused, and the code says which part was cut:
@@ -286,7 +286,7 @@ crawlbrulee map https://example.com -o links.txt
 | `--country <iso>`       | ISO 3166-1 alpha-2 country — proxy egress hint (eu / europe also accepted) |
 | `-o, --output <file>`   | write to a file instead of stdout                                          |
 
-the map response's `response_meta` carries the same `usage` envelope (`{ credits, proxy, cache_hit }`)
+the map response's `response_meta` carries the same `usage` envelope (`{ credits, engine, proxy, screenshot_slices }`)
 alongside its `pagination`/`truncation` blocks; text mode appends it as a `# usage: …` comment.
 see the [map endpoint](https://crawlbrulee.com/docs/map) for discovery rules and pagination semantics.
 

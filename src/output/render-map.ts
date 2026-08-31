@@ -17,9 +17,11 @@ export function renderMapText(res: MapResponse): string {
   }
 
   if (res.response_meta.usage) {
-    const { credits, proxy, cache_hit } = res.response_meta.usage
+    const { credits, engine, proxy, screenshot_slices } = res.response_meta.usage
     if (!has_more) lines.push('')
-    lines.push(`# usage: ${credits} credits · proxy ${proxy} · cache_hit ${cache_hit}`)
+    lines.push(
+      `# usage: ${credits} credits · engine ${engine} · proxy ${proxy} · slices ${screenshot_slices}`
+    )
   }
 
   return lines.join('\n')

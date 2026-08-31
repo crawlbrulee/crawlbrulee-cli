@@ -47,31 +47,37 @@ describe('renderScrapeText', () => {
       requested_url: 'https://example.com',
       markdown: '# Hello\n\nworld',
       metadata: { title: 'Example Domain' },
-      response_meta: { usage: { credits: 1, proxy: 'basic', cache_hit: false } },
+      response_meta: {
+        usage: { credits: 1, engine: 'text', proxy: 'basic', screenshot_slices: 0 },
+      },
     })
     expect(out).toBe(
-      '## Example Domain\n\n# Hello\n\nworld\n\n# usage: 1 credits · proxy basic · cache_hit false'
+      '## Example Domain\n\n# Hello\n\nworld\n\n# usage: 1 credits · engine text · proxy basic · slices 0'
     )
   })
 
-  it('appends a usage footer with credits, resolved proxy, and cache_hit', () => {
+  it('appends a usage footer with credits, engine, resolved proxy, and slices', () => {
     const out = renderScrapeText({
       url: 'https://example.com',
       requested_url: 'https://example.com',
       markdown: 'body',
-      response_meta: { usage: { credits: 3, proxy: 'advanced', cache_hit: false } },
+      response_meta: {
+        usage: { credits: 6, engine: 'screenshot', proxy: 'basic', screenshot_slices: 1 },
+      },
     })
-    expect(out).toContain('# usage: 3 credits · proxy advanced · cache_hit false')
+    expect(out).toContain('# usage: 6 credits · engine screenshot · proxy basic · slices 1')
   })
 
-  it('shows 0 credits and cache_hit true on a cache hit', () => {
+  it('shows 0 credits and the cache engine on a cache hit', () => {
     const out = renderScrapeText({
       url: 'https://example.com',
       requested_url: 'https://example.com',
       markdown: 'body',
-      response_meta: { usage: { credits: 0, proxy: 'basic', cache_hit: true } },
+      response_meta: {
+        usage: { credits: 0, engine: 'cache', proxy: 'basic', screenshot_slices: 0 },
+      },
     })
-    expect(out).toContain('# usage: 0 credits · proxy basic · cache_hit true')
+    expect(out).toContain('# usage: 0 credits · engine cache · proxy basic · slices 0')
   })
 
   it('falls back to cleaned_html when no markdown is present', () => {
@@ -79,7 +85,9 @@ describe('renderScrapeText', () => {
       url: 'https://example.com',
       requested_url: 'https://example.com',
       cleaned_html: '<p>hi</p>',
-      response_meta: { usage: { credits: 1, proxy: 'basic', cache_hit: false } },
+      response_meta: {
+        usage: { credits: 1, engine: 'text', proxy: 'basic', screenshot_slices: 0 },
+      },
     })
     expect(out).toContain('<p>hi</p>')
   })
@@ -114,7 +122,9 @@ describe('renderScrapeText', () => {
           },
         ],
       },
-      response_meta: { usage: { credits: 1, proxy: 'basic', cache_hit: false } },
+      response_meta: {
+        usage: { credits: 1, engine: 'text', proxy: 'basic', screenshot_slices: 0 },
+      },
     })
     expect(out).toContain('screenshot: https://cdn/x.png (1 slices)')
     expect(out).toContain('- https://cdn/s0.png')
@@ -128,7 +138,9 @@ describe('renderScrapeText', () => {
       url: 'https://example.com',
       requested_url: 'https://example.com',
       markdown: 'body',
-      response_meta: { usage: { credits: 1, proxy: 'basic', cache_hit: false } },
+      response_meta: {
+        usage: { credits: 1, engine: 'text', proxy: 'basic', screenshot_slices: 0 },
+      },
     } as unknown as ScrapeResponse
     const out = renderScrapeText(res)
     expect(out).not.toContain('screenshot')
@@ -140,7 +152,9 @@ describe('renderScrapeText', () => {
       url: 'https://example.com',
       requested_url: 'https://example.com',
       links: [{ text: 't', href: 'https://a', internal: true }],
-      response_meta: { usage: { credits: 1, proxy: 'basic', cache_hit: false } },
+      response_meta: {
+        usage: { credits: 1, engine: 'text', proxy: 'basic', screenshot_slices: 0 },
+      },
     })
     expect(out).toContain('https://a')
   })
@@ -151,7 +165,9 @@ describe('renderScrapeText', () => {
       requested_url: 'https://example.com',
       markdown: 'body',
       warnings: ['screenshot_truncated'],
-      response_meta: { usage: { credits: 1, proxy: 'basic', cache_hit: false } },
+      response_meta: {
+        usage: { credits: 1, engine: 'text', proxy: 'basic', screenshot_slices: 0 },
+      },
     })
     expect(out).toContain('# warning: screenshot_truncated')
   })
@@ -183,10 +199,12 @@ describe('renderJobStatusText', () => {
       job_id: 'job_done',
       status: 'done',
       created_at: '2026-07-13T10:00:00.000Z',
-      response_meta: { usage: { credits: 2, proxy: 'advanced', cache_hit: false } },
+      response_meta: {
+        usage: { credits: 15, engine: 'browser', proxy: 'advanced', screenshot_slices: 0 },
+      },
     })
     expect(out).toContain('status: done')
-    expect(out).toContain('# usage: 2 credits · proxy advanced · cache_hit false')
+    expect(out).toContain('# usage: 15 credits · engine browser · proxy advanced · slices 0')
   })
 })
 
@@ -202,10 +220,12 @@ describe('renderMapText', () => {
           total_before_max_urls: 2,
           total_detected_before_storage_cap: 2,
         },
-        usage: { credits: 1, proxy: 'basic', cache_hit: false },
+        usage: { credits: 1, engine: 'text', proxy: 'basic', screenshot_slices: 0 },
       },
     })
-    expect(out).toBe('https://a\nhttps://b\n\n# usage: 1 credits · proxy basic · cache_hit false')
+    expect(out).toBe(
+      'https://a\nhttps://b\n\n# usage: 1 credits · engine text · proxy basic · slices 0'
+    )
   })
 
   it('appends a pagination hint when has_more', () => {
@@ -219,13 +239,13 @@ describe('renderMapText', () => {
           total_before_max_urls: 3,
           total_detected_before_storage_cap: 3,
         },
-        usage: { credits: 1, proxy: 'basic', cache_hit: false },
+        usage: { credits: 1, engine: 'text', proxy: 'basic', screenshot_slices: 0 },
       },
     })
     expect(out).toContain('… and 2 more (use --page 2)')
   })
 
-  it('appends a usage footer with credits, resolved proxy, and cache_hit', () => {
+  it('appends a usage footer with credits, engine, resolved proxy, and slices', () => {
     const out = renderMapText({
       links: [{ url: 'https://a' }],
       response_meta: {
@@ -236,10 +256,10 @@ describe('renderMapText', () => {
           total_before_max_urls: 1,
           total_detected_before_storage_cap: 1,
         },
-        usage: { credits: 1, proxy: 'basic', cache_hit: false },
+        usage: { credits: 1, engine: 'text', proxy: 'basic', screenshot_slices: 0 },
       },
     })
-    expect(out).toContain('# usage: 1 credits · proxy basic · cache_hit false')
+    expect(out).toContain('# usage: 1 credits · engine text · proxy basic · slices 0')
   })
 })
 
