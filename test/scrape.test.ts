@@ -107,7 +107,7 @@ describe('buildScrapeRequest — transport flags', () => {
 
   it('--exclude-selectors "nav,footer" sends an array', () => {
     const body = buildScrapeRequest('https://example.com', { excludeSelectors: 'nav, footer' })
-    expect(body.exclude_selectors).toEqual(['nav', 'footer'])
+    expect(body.cleanup?.exclude_selectors).toEqual(['nav', 'footer'])
   })
 
   it('--cache-max-age sets cache.max_age', () => {

@@ -7,6 +7,7 @@ import { parseProxy } from '../parsers/proxy.js'
 import { addFormatOptions, runCommand, withErrorHandler, type CommonOptions } from './runner.js'
 
 export interface MapOptions extends CommonOptions {
+  maxUrls?: string
   limit?: string
   page?: string
   sitemapOnly?: boolean
@@ -26,7 +27,11 @@ export function registerMapCommand(program: Command): void {
     .option('-k, --api-key <key>', 'API key (overrides config + env)')
     .option('--api-url <url>', 'Base URL (overrides config + env)')
 
-    .option('--limit <n>', 'URLs per page (API max 10000)')
+    .option(
+      '--max-urls <n>',
+      'total URLs to collect (default 5000, API max 100000) — a discovery budget, not an end-slice: raising it does more work and can turn a free cache hit into a billed fresh map'
+    )
+    .option('--limit <n>', 'URLs per page (default 5000, API max 10000)')
     .option('--page <n>', 'page number (1-indexed)')
     .option('--sitemap-only', 'skip homepage extraction, use sitemap.xml only')
     .option('--internal-only', 'only same-domain links')
@@ -62,6 +67,7 @@ export function buildMapRequest(url: string, opts: MapOptions): MapRequest {
 
   const body: MapRequest = { url }
 
+  if (opts.maxUrls !== undefined) body.max_urls = parsePositiveInt(opts.maxUrls, '--max-urls')
   if (opts.limit !== undefined) body.limit = parsePositiveInt(opts.limit, '--limit')
   if (opts.page !== undefined) body.page = parsePositiveInt(opts.page, '--page')
   if (opts.sitemapOnly) body.sitemap_only = true

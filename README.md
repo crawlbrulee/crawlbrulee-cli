@@ -69,14 +69,14 @@ crawlbrulee scrape url https://example.com --proxy advanced --require-js
 crawlbrulee scrape url https://example.com -o out.json
 ```
 
-every scrape response carries a `response_meta.usage` envelope — `{ credits, engine, proxy, screenshot_slices }` — where
+every scrape response carries a `response_meta.usage` object — `{ credits, engine, proxy, screenshot_slices }` — where
 `credits` is what the call cost (`0` on a fully cached result — only parts still computed fresh,
 e.g. a newly produced screenshot-slice variant, are charged), `proxy` is the **resolved** tier
 actually used (`basic` | `advanced`, never `auto`). `engine` is `text`, `browser`, `screenshot`,
 or `cache`; `screenshot_slices` is the slice add-on charged for this request (`0` or `1`).
 
 - in text mode this is printed as a trailing comment, e.g. `# usage: 15 credits · engine browser · proxy advanced · slices 0`;
-- in json it's the `response_meta.usage` object. page metadata (title, OG/Twitter tags, etc.) is returned under `metadata`. `url` is the url actually scraped (after redirects, in cleaned canonical form) and `requested_url` is the url you requested, echoed verbatim.
+- in json it's the `response_meta.usage` object. page metadata (title, OG/Twitter tags, etc.) is returned under `metadata`. `url` is the url actually scraped (after redirects, in normalized form) and `requested_url` is the url you requested, echoed verbatim.
 
 non-fatal notices ride along as `warnings` — in text mode they print as `# warning: <code>` lines, in json on the `warnings` array. an outsized page is truncated rather than refused, and the code says which part was cut:
 
@@ -231,7 +231,7 @@ crawlbrulee scrape status job_abc123
 # created: 2026-07-13T10:00:00.000Z
 ```
 
-when the job is `done`, the status carries the `response_meta.usage` envelope; when it
+when the job is `done`, the status carries the `response_meta.usage` object; when it
 `failed`, an `# error: …` line explains why.
 
 ### `crawlbrulee scrape result <job-id>`
@@ -266,6 +266,7 @@ list urls discovered on a site (sitemap + homepage crawl, deduped).
 ```bash
 crawlbrulee map https://example.com
 crawlbrulee map https://example.com --limit 500 --page 2
+crawlbrulee map https://example.com --max-urls 20000
 crawlbrulee map https://example.com --sitemap-only
 crawlbrulee map https://example.com --internal-only --no-subdomains
 crawlbrulee map https://example.com --external-only
@@ -275,7 +276,8 @@ crawlbrulee map https://example.com -o links.txt
 
 | flag                    | effect                                                                     |
 | ----------------------- | -------------------------------------------------------------------------- |
-| `--limit <n>`           | urls per page (api max 10000)                                              |
+| `--max-urls <n>`        | total urls to collect (default 5000, api max 100000)                       |
+| `--limit <n>`           | urls per page (default 5000, api max 10000)                                |
 | `--page <n>`            | page number (1-indexed)                                                    |
 | `--sitemap-only`        | skip homepage extraction, use `sitemap.xml` only                           |
 | `--internal-only`       | same-domain links only                                                     |
@@ -286,9 +288,30 @@ crawlbrulee map https://example.com -o links.txt
 | `--country <iso>`       | ISO 3166-1 alpha-2 country — proxy egress hint (eu / europe also accepted) |
 | `-o, --output <file>`   | write to a file instead of stdout                                          |
 
-the map response's `response_meta` carries a `usage` envelope (`{ credits, engine, proxy }`)
+the map response's `response_meta` carries a `usage` object (`{ credits, engine, proxy }`)
 alongside its `pagination`/`truncation` blocks. text mode appends it as
 `# usage: <credits> credits · engine <engine> · proxy <proxy>`.
+
+**`--max-urls` and `--limit` are different ceilings.** `--limit` is a page size: it trims
+this response only, and `--page` gets you the rest. `--max-urls` is a discovery budget —
+collection _stops_ when it fills up, so urls past it were never found and no amount of
+paging brings them back. both default to 5000; the maximums are 100000 and 10000.
+
+raising `--max-urls` doesn't change the per-map credit price, but it is not free either: it
+does more discovery work, and a cached map built under a smaller budget can't answer a
+bigger request, so the retry runs fresh and is billed instead of served free from cache.
+
+the json response says when discovery stopped early: `response_meta.truncation.discovery_capped`
+is `true` and `discovery_cap_reason` names the limit that stopped it — `max_urls`, `time`,
+`file_budget`, `depth`, or `file_size`. **only `max_urls` is one you can lift** (retry with a
+bigger `--max-urls`); the others mean the site is too big, deep or slow for one pass.
+`sitemaps_skipped` counts sitemap files that were skipped or read only in part. text mode
+does not print any of this today, so use `--json` when you need to know the list is complete.
+
+returned urls come back normalized, the same form `scrape` reports for its own `url`, so
+mapping then scraping stays on one host. results are ordered so the most useful links land
+on page 1.
+
 see the [map endpoint](https://crawlbrulee.com/docs/map) for discovery rules and pagination semantics.
 
 ### `crawlbrulee usage`
@@ -405,6 +428,8 @@ errors come from the sdk and from the cli's own validation. they go to stderr as
 error: too_many_requests — please slow down (retry after 12000ms)
 error: usage_allocation_error — out of credits (reason: credit_limit)
 error: antibot_blocked — protected page
+error: too_many_redirects — Target site redirected the request too many times.
+error: page_too_large — The page is too large or too complex to convert.
 error: service_unavailable — backend unavailable (temporary — safe to retry)
 error: invalid_url — not a valid URL
 error: not logged in — run `crawlbrulee login` or set CRAWLBRULEE_API_KEY
@@ -416,7 +441,8 @@ key — retry it with backoff rather than rotating credentials.
 the exit code is `1` on any failure and `0` on success, so you can branch on it in scripts. it
 tells you _that_ the call failed, not whether retrying will help: for that, read the error name.
 `too_many_requests`, `request_timeout` and `service_unavailable` are worth retrying with backoff;
-`invalid_credentials`, `invalid_url` and `validation_error` will fail the same way every time.
+`invalid_credentials`, `invalid_url`, `validation_error` and `page_too_large` will fail the same
+way every time.
 the name is the word right after `error:` on the stderr line, in `--json` and text mode alike.
 the api docs carry the canonical [error reference](https://crawlbrulee.com/docs/errors) — every
 error name, what causes it, and how to recover.

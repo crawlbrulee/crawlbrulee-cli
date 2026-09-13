@@ -24,6 +24,31 @@ describe('buildMapRequest — basic', () => {
     )
   })
 
+  it('passes --max-urls through as an integer', () => {
+    expect(buildMapRequest('https://example.com', { maxUrls: '20000' })).toEqual({
+      url: 'https://example.com',
+      max_urls: 20000,
+    })
+  })
+
+  // max_urls is a server-side default (5000), so an absent flag must not send the key at
+  // all — sending our own guess would freeze the default into every CLI call.
+  it('omits max_urls entirely when --max-urls is not given', () => {
+    expect(buildMapRequest('https://example.com', { limit: '500' })).not.toHaveProperty('max_urls')
+  })
+
+  it('rejects non-positive --max-urls', () => {
+    expect(() => buildMapRequest('https://example.com', { maxUrls: '0' })).toThrow(
+      /invalid --max-urls '0'/
+    )
+  })
+
+  it('rejects a non-numeric --max-urls', () => {
+    expect(() => buildMapRequest('https://example.com', { maxUrls: 'lots' })).toThrow(
+      /invalid --max-urls 'lots'/
+    )
+  })
+
   it('--sitemap-only sets sitemap_only=true', () => {
     const body = buildMapRequest('https://example.com', { sitemapOnly: true })
     expect(body.sitemap_only).toBe(true)
@@ -127,6 +152,9 @@ describe('runMap (end-to-end via mocked fetch)', () => {
                 response_capped: false,
                 total_before_max_urls: 1,
                 total_detected_before_storage_cap: 1,
+                discovery_capped: false,
+                sitemaps_skipped: 0,
+                discovery_cap_reason: null,
               },
             },
           }),
@@ -139,6 +167,7 @@ describe('runMap (end-to-end via mocked fetch)', () => {
     await runMap('https://example.com', {
       apiKey: 'cwbl_test',
       apiUrl: 'https://staging-api.example.com',
+      maxUrls: '20000',
       limit: '10',
       country: 'DE',
       json: true,
@@ -150,6 +179,7 @@ describe('runMap (end-to-end via mocked fetch)', () => {
     const parsedBody: unknown = JSON.parse(init.body as string)
     expect(parsedBody).toEqual({
       url: 'https://example.com',
+      max_urls: 20000,
       limit: 10,
       location: { country: 'DE' },
     })

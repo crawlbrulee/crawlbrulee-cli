@@ -4,7 +4,33 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
-## unreleased
+## 4.3.0 (2026-09-13)
+
+### added
+
+- `map --max-urls <n>` — the total number of urls to collect, default 5000, maximum 100000.
+  it is a discovery budget rather than an end-slice: collection stops when it fills up, so
+  urls past it are never found and paging can't recover them. non-integer and non-positive
+  values are rejected up front (`invalid --max-urls '0'`); the maximum is enforced by the
+  api. omitting the flag sends no `max_urls`, leaving the server default in charge.
+
+### changed
+
+- documents the api's new `too_many_redirects` error (HTTP 422: the target site redirected
+  the request in a loop). it prints as `error: too_many_redirects — <message>` with no retry
+  hint, like `antibot_blocked`, because retrying rarely helps. no command, flag, or JSON
+  output shape changed.
+- documents the api's new `page_too_large` error (HTTP 422: the page's html was too large to
+  process). it prints as `error: page_too_large — <message>` with no retry hint, because the
+  same url fails the same way. no command, flag, or JSON output shape changed.
+- documents the api's new `/api/map` defaults and truncation reporting. a map now holds up
+  to 5000 urls by default (was 100000) and returns up to 5000 per page (was 10000); the
+  maximums are unchanged. `--limit`'s help text names the new default, and the readme covers
+  the added `response_meta.truncation` fields (`discovery_capped`, `sitemaps_skipped`,
+  `discovery_cap_reason`), the returned url form, and the result ordering. no command, flag,
+  or JSON output shape changed in the cli itself.
+
+## 4.1.0 (2026-09-02)
 
 ### changed
 
@@ -91,7 +117,7 @@ this project follows [Semantic Versioning](https://semver.org). breaking changes
 
 - moves to `@crawlbrulee/sdk` `^0.9.0`, which types the `requested_url` response field (the
   url you requested, echoed verbatim, alongside `url` — the url actually scraped, after
-  redirects, in cleaned canonical form) and names the `unsupported_screenshot_output` error.
+  redirects, in normalized form) and names the `unsupported_screenshot_output` error.
   the cli passes both through in `--json` output; no flags changed.
 
 ### docs
@@ -157,7 +183,7 @@ tracks a wave of server-side behavior changes. no flags were removed or renamed.
 ### added
 
 - **`crawlbrulee scrape status <job-id>`** — look up an async job's state (`pending` /
-  `running` / `done` / `failed`), with the `response_meta.usage` envelope once `done` and an
+  `running` / `done` / `failed`), with the `response_meta.usage` object once `done` and an
   `# error: …` line on failure.
 - **`crawlbrulee scrape result <job-id>`** — fetch the result of a completed async job
   (rendered like a synchronous scrape); errors if the job isn't finished yet.
@@ -172,7 +198,7 @@ job …` note to stderr in a terminal; Ctrl-C cancels.
 
 ### breaking
 
-- **`response_meta.usage` envelope.** scrape and map responses now carry a
+- **usage accounting in `response_meta`.** scrape and map responses now carry a
   `response_meta.usage` object — `{ credits, proxy, cache_hit }`. in text mode the cli
   prints it as a trailing `# usage: <credits> credits · proxy <tier> · cache_hit <bool>`
   comment; in json it is passed through verbatim. `credits` is `0` on a cache

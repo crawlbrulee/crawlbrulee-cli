@@ -27,6 +27,7 @@ export interface ScrapeOptions extends CommonOptions {
   proxy?: string
   requireJs?: boolean
   excludeSelectors?: string
+  keepAds?: boolean
   cacheMaxAge?: string
 
   locale?: string
@@ -94,7 +95,14 @@ function registerScrapeUrlCommand(scrape: Command): void {
       'proxy tier: basic | advanced | auto (default: auto — tries basic tier first, escalates to advanced on failure)'
     )
     .option('--require-js', 'render with a headless browser')
-    .option('--exclude-selectors <csv>', 'CSS selectors to strip, comma-separated')
+    .option(
+      '--exclude-selectors <csv>',
+      'CSS selectors to strip, comma-separated (max 100). Shapes the extracted content and the screenshot, never --raw-html'
+    )
+    .option(
+      '--keep-ads',
+      'keep ads, cookie banners, consent dialogs and chat widgets (they are removed by default)'
+    )
     .option('--cache-max-age <seconds>', 'cache max age in seconds')
 
     .option('--locale <bcp47>', 'BCP-47 locale tag (e.g. en-US)')
@@ -289,12 +297,18 @@ export function buildScrapeRequest(url: string, opts: ScrapeOptions): ScrapeRequ
 
   if (opts.proxy) body.proxy = parseProxy(opts.proxy)
   if (opts.requireJs) body.require_js = true
-  if (opts.excludeSelectors) {
-    const selectors = opts.excludeSelectors
-      .split(',')
-      .map(s => s.trim())
-      .filter(s => s.length > 0)
-    if (selectors.length > 0) body.exclude_selectors = selectors
+  // `cleanup` is one block server-side. Only send what the caller actually
+  // asked for: an omitted field takes the server default, and pinning
+  // `ads_and_popups: true` here would just duplicate that default.
+  const selectors = (opts.excludeSelectors ?? '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+  if (selectors.length > 0 || opts.keepAds) {
+    body.cleanup = {
+      ...(opts.keepAds ? { ads_and_popups: false } : {}),
+      ...(selectors.length > 0 ? { exclude_selectors: selectors } : {}),
+    }
   }
   if (opts.cacheMaxAge !== undefined) {
     body.cache = { max_age: parseNonNegativeInt(opts.cacheMaxAge, '--cache-max-age') }

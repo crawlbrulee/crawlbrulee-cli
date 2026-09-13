@@ -1,6 +1,6 @@
 {
   "name": "crawlbrulee",
-  "version": "4.0.0",
+  "version": "4.3.0",
   "description": "Official CLI for the crawlbrulee API — scrape, map, and inspect usage from your terminal.",
   "keywords": [
     "crawlbrulee",
@@ -51,7 +51,7 @@
     "prepublishOnly": "pnpm verify"
   },
   "dependencies": {
-    "@crawlbrulee/sdk": "^0.12.0",
+    "@crawlbrulee/sdk": "^0.15.0",
     "@inquirer/prompts": "^7.0.0",
     "commander": "^13.0.0"
   },

@@ -1,4 +1,4 @@
-import type { ApiErrorName, MapResponse, ScrapeResponse } from '@crawlbrulee/sdk'
+import type { MapResponse, ScrapeResponse } from '@crawlbrulee/sdk'
 import {
   CrawlbruleeError,
   RateLimitError,
@@ -309,14 +309,42 @@ describe('formatError', () => {
     expect(formatError(err)).toBe('error: antibot_blocked — blocked')
   })
 
+  it('does not suggest retry tactics for too_many_redirects', () => {
+    // A redirect loop is the target's doing: no hint, like antibot_blocked.
+    const err = new CrawlbruleeError('Target site redirected the request too many times.', {
+      status: 422,
+      errorName: 'too_many_redirects',
+      response: {
+        name: 'too_many_redirects',
+        message: 'Target site redirected the request too many times.',
+      },
+    })
+    expect(formatError(err)).toBe(
+      'error: too_many_redirects — Target site redirected the request too many times.'
+    )
+  })
+
+  it('does not suggest retry tactics for page_too_large', () => {
+    // The page is too big to convert: terminal, so no hint — the same url
+    // would fail the same way.
+    const err = new CrawlbruleeError('The page is too large or too complex to convert.', {
+      status: 422,
+      errorName: 'page_too_large',
+      response: {
+        name: 'page_too_large',
+        message: 'The page is too large or too complex to convert.',
+      },
+    })
+    expect(formatError(err)).toBe(
+      'error: page_too_large — The page is too large or too complex to convert.'
+    )
+  })
+
   it('adds a retry hint for service_unavailable', () => {
-    // The cast goes away once the sdk floor types `service_unavailable` in
-    // `ApiErrorName`; the cli already has to handle the 503 today.
-    const errorName = 'service_unavailable' as ApiErrorName
     const err = new CrawlbruleeError('backend unavailable', {
       status: 503,
-      errorName,
-      response: { name: errorName, message: 'backend unavailable' },
+      errorName: 'service_unavailable',
+      response: { name: 'service_unavailable', message: 'backend unavailable' },
     })
     expect(formatError(err)).toBe(
       'error: service_unavailable — backend unavailable (temporary — safe to retry)'
