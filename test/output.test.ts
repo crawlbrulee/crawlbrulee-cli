@@ -48,11 +48,11 @@ describe('renderScrapeText', () => {
       markdown: '# Hello\n\nworld',
       metadata: { title: 'Example Domain' },
       response_meta: {
-        usage: { credits: 1, engine: 'text', proxy: 'basic', screenshot_slices: 0 },
+        usage: { credits: 1, engine: 'http', proxy: 'basic', screenshot_slices: 0 },
       },
     })
     expect(out).toBe(
-      '## Example Domain\n\n# Hello\n\nworld\n\n# usage: 1 credits · engine text · proxy basic · slices 0'
+      '## Example Domain\n\n# Hello\n\nworld\n\n# usage: 1 credits · engine http · proxy basic · slices 0'
     )
   })
 
@@ -86,7 +86,7 @@ describe('renderScrapeText', () => {
       requested_url: 'https://example.com',
       cleaned_html: '<p>hi</p>',
       response_meta: {
-        usage: { credits: 1, engine: 'text', proxy: 'basic', screenshot_slices: 0 },
+        usage: { credits: 1, engine: 'http', proxy: 'basic', screenshot_slices: 0 },
       },
     })
     expect(out).toContain('<p>hi</p>')
@@ -123,7 +123,7 @@ describe('renderScrapeText', () => {
         ],
       },
       response_meta: {
-        usage: { credits: 1, engine: 'text', proxy: 'basic', screenshot_slices: 0 },
+        usage: { credits: 1, engine: 'http', proxy: 'basic', screenshot_slices: 0 },
       },
     })
     expect(out).toContain('screenshot: https://cdn/x.png (1 slices)')
@@ -139,7 +139,7 @@ describe('renderScrapeText', () => {
       requested_url: 'https://example.com',
       markdown: 'body',
       response_meta: {
-        usage: { credits: 1, engine: 'text', proxy: 'basic', screenshot_slices: 0 },
+        usage: { credits: 1, engine: 'http', proxy: 'basic', screenshot_slices: 0 },
       },
     } as unknown as ScrapeResponse
     const out = renderScrapeText(res)
@@ -153,7 +153,7 @@ describe('renderScrapeText', () => {
       requested_url: 'https://example.com',
       links: [{ text: 't', href: 'https://a', internal: true }],
       response_meta: {
-        usage: { credits: 1, engine: 'text', proxy: 'basic', screenshot_slices: 0 },
+        usage: { credits: 1, engine: 'http', proxy: 'basic', screenshot_slices: 0 },
       },
     })
     expect(out).toContain('https://a')
@@ -166,7 +166,7 @@ describe('renderScrapeText', () => {
       markdown: 'body',
       warnings: ['screenshot_truncated'],
       response_meta: {
-        usage: { credits: 1, engine: 'text', proxy: 'basic', screenshot_slices: 0 },
+        usage: { credits: 1, engine: 'http', proxy: 'basic', screenshot_slices: 0 },
       },
     })
     expect(out).toContain('# warning: screenshot_truncated')
@@ -220,10 +220,10 @@ describe('renderMapText', () => {
           total_before_max_urls: 2,
           total_detected_before_storage_cap: 2,
         },
-        usage: { credits: 1, engine: 'text', proxy: 'basic' },
+        usage: { credits: 1, engine: 'http', proxy: 'basic' },
       },
     } as MapResponse)
-    expect(out).toBe('https://a\nhttps://b\n\n# usage: 1 credits · engine text · proxy basic')
+    expect(out).toBe('https://a\nhttps://b\n\n# usage: 1 credits · engine http · proxy basic')
   })
 
   it('appends a pagination hint when has_more', () => {
@@ -237,7 +237,7 @@ describe('renderMapText', () => {
           total_before_max_urls: 3,
           total_detected_before_storage_cap: 3,
         },
-        usage: { credits: 1, engine: 'text', proxy: 'basic' },
+        usage: { credits: 1, engine: 'http', proxy: 'basic' },
       },
     } as MapResponse)
     expect(out).toContain('… and 2 more (use --page 2)')
@@ -254,10 +254,10 @@ describe('renderMapText', () => {
           total_before_max_urls: 1,
           total_detected_before_storage_cap: 1,
         },
-        usage: { credits: 1, engine: 'text', proxy: 'basic' },
+        usage: { credits: 1, engine: 'http', proxy: 'basic' },
       },
     } as MapResponse)
-    expect(out).toContain('# usage: 1 credits · engine text · proxy basic')
+    expect(out).toContain('# usage: 1 credits · engine http · proxy basic')
     expect(out).not.toContain('slices')
   })
 })

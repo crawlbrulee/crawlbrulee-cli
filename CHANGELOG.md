@@ -4,6 +4,16 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+## 5.0.0 (2026-09-17)
+
+### breaking
+
+- **the `http` engine replaces `text`.** the usage footer in text mode (the non-`--json`
+  output) now prints `engine http` where it printed `engine text`, and `--json` output carries
+  `"engine": "http"`. `http` means the plain fetch engine delivered the result — no JavaScript
+  ran. the credit base is unchanged. scripts that match on `engine text` must be updated.
+- moves to `@crawlbrulee/sdk` `^0.16.0`.
+
 ## 4.3.0 (2026-09-13)
 
 ### added

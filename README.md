@@ -72,7 +72,7 @@ crawlbrulee scrape url https://example.com -o out.json
 every scrape response carries a `response_meta.usage` object — `{ credits, engine, proxy, screenshot_slices }` — where
 `credits` is what the call cost (`0` on a fully cached result — only parts still computed fresh,
 e.g. a newly produced screenshot-slice variant, are charged), `proxy` is the **resolved** tier
-actually used (`basic` | `advanced`, never `auto`). `engine` is `text`, `browser`, `screenshot`,
+actually used (`basic` | `advanced`, never `auto`). `engine` is `http`, `browser`, `screenshot`,
 or `cache`; `screenshot_slices` is the slice add-on charged for this request (`0` or `1`).
 
 - in text mode this is printed as a trailing comment, e.g. `# usage: 15 credits · engine browser · proxy advanced · slices 0`;
@@ -288,7 +288,7 @@ crawlbrulee map https://example.com -o links.txt
 | `--country <iso>`       | ISO 3166-1 alpha-2 country — proxy egress hint (eu / europe also accepted) |
 | `-o, --output <file>`   | write to a file instead of stdout                                          |
 
-the map response's `response_meta` carries a `usage` object (`{ credits, engine, proxy }`)
+the map response's `response_meta` carries a `usage` object (`{ credits, engine, proxy }`, where `engine` is `http` or `cache`)
 alongside its `pagination`/`truncation` blocks. text mode appends it as
 `# usage: <credits> credits · engine <engine> · proxy <proxy>`.
 
