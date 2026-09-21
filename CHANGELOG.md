@@ -4,6 +4,13 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+## 5.0.2 (2026-09-21)
+
+### changed
+
+- readme and package description rewritten. they now lead with what crawlbrulee is: EU-native web
+  scraping for AI agents & developers. new npm keywords. no code or output changes.
+
 ## 5.0.1 (2026-09-21)
 
 ### changed

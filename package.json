@@ -1,7 +1,7 @@
 {
   "name": "crawlbrulee",
-  "version": "5.0.1",
-  "description": "Official CLI for the crawlbrulee API — scrape, map, and inspect usage from your terminal.",
+  "version": "5.0.2",
+  "description": "official cli for crawlbrulee — EU-native web scraping for AI agents & developers. scrape and map from your terminal, clean json when piped.",
   "keywords": [
     "crawlbrulee",
     "cli",
@@ -10,7 +10,13 @@
     "crawler",
     "web-scraping",
     "screenshot",
-    "sitemap"
+    "sitemap",
+    "eu",
+    "gdpr",
+    "ai-agents",
+    "llm",
+    "rag",
+    "markdown"
   ],
   "license": "Apache-2.0",
   "homepage": "https://crawlbrulee.com",
