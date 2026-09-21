@@ -4,6 +4,14 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+## 5.0.1 (2026-09-21)
+
+### changed
+
+- license changed from AGPL-3.0-only to Apache-2.0. no code or api changes.
+- now built on `@crawlbrulee/sdk` `^1.0.0`, the first Apache-2.0 sdk release, so the whole install is
+  Apache-2.0.
+
 ## 5.0.0 (2026-09-17)
 
 ### breaking

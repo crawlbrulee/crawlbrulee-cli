@@ -480,4 +480,4 @@ docs: [crawlbrulee.com/docs](https://crawlbrulee.com/docs) · dashboard: [dashbo
 
 ## license
 
-[AGPL-3.0-only](./LICENSE)
+[Apache-2.0](./LICENSE)
