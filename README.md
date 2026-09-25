@@ -78,14 +78,42 @@ crawlbrulee scrape url https://example.com --proxy advanced --require-js
 crawlbrulee scrape url https://example.com -o out.json
 ```
 
-every scrape response carries a `response_meta.usage` object — `{ credits, engine, proxy, screenshot_slices }` — where
-`credits` is what the call cost (`0` on a fully cached result — only parts still computed fresh,
-e.g. a newly produced screenshot-slice variant, are charged), `proxy` is the **resolved** tier
-actually used (`basic` | `advanced`, never `auto`). `engine` is `http`, `browser`, `screenshot`,
-or `cache`; `screenshot_slices` is the slice add-on charged for this request (`0` or `1`).
+every scrape response carries a `response_meta.usage` object that says what the call cost and why:
+
+| field                            | what it means                                                                                   |
+| -------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `total_credit_cost`              | what the call cost, in credits                                                                  |
+| `engine_credit_cost`             | the engine base: `http` 1, `browser` 3, `screenshot` 5, `cache` 0                               |
+| `proxy_multiplier`               | `1` for the `basic` proxy tier, `5` for `advanced`                                              |
+| `screenshot_slicing_credit_cost` | `1` when the screenshot was cut into slices on this call, else `0`                              |
+| `engine`                         | `http`, `browser`, `screenshot`, or `cache` — what delivered the result                         |
+| `proxy`                          | the **resolved** tier actually used (`basic` \| `advanced`, never `auto`)                       |
+| `credits`                        | deprecated: same value as `total_credit_cost`; will be removed in a future version              |
+| `screenshot_slices`              | deprecated: same value as `screenshot_slicing_credit_cost`; will be removed in a future version |
+
+`total_credit_cost` is always `engine_credit_cost × proxy_multiplier + screenshot_slicing_credit_cost`.
+a fully cached result costs `0` (only parts still computed fresh, e.g. a newly produced
+screenshot-slice variant, are charged), and so does a page we don't bill — every `*_credit_cost`
+field is `0` then, while `proxy_multiplier` still shows the tier the call ran on. see [credits & pricing](https://crawlbrulee.com/docs/credits-and-pricing) for what is billed.
 
 - in text mode this is printed as a trailing comment, e.g. `# usage: 15 credits · engine browser · proxy advanced · slices 0`;
-- in json it's the `response_meta.usage` object. page metadata (title, OG/Twitter tags, etc.) is returned under `metadata`. `url` is the url actually scraped (after redirects, in normalized form) and `requested_url` is the url you requested, echoed verbatim.
+- in json it's the `response_meta.usage` object, passed through as the api sent it. page metadata (title, OG/Twitter tags, etc.) is returned under `metadata`. `url` is the url actually scraped (after redirects, in normalized form) and `requested_url` is the url you requested, echoed verbatim.
+
+**a 404 page is still a successful scrape.** `page_status_code` is the http status the site
+answered with for the final page, after redirects. a page the site really served comes back
+with its content whatever its status — a 404, 410, 401, 503 and so on — so the command
+succeeds and exits `0`. in text mode a status other than 2xx is added to the usage line:
+
+```
+# usage: 15 credits · engine browser · proxy advanced · slices 0 · page status 404
+```
+
+in json, read `page_status_code`. if your script should treat a missing page as a failure,
+check it yourself:
+
+```bash
+crawlbrulee scrape url https://example.com/some-page --json | jq -e '.page_status_code < 400'
+```
 
 non-fatal notices ride along as `warnings` — in text mode they print as `# warning: <code>` lines, in json on the `warnings` array. an outsized page is truncated rather than refused, and the code says which part was cut:
 
@@ -241,11 +269,13 @@ crawlbrulee scrape status job_abc123
 ```
 
 when the job is `done`, the status carries the `response_meta.usage` object; when it
-`failed`, an `# error: …` line explains why.
+`failed`, an `# error: …` line explains why. a job whose page came back with a status like 404
+is `done`, not `failed` — the page is in the result, with its `page_status_code`.
 
 ### `crawlbrulee scrape result <job-id>`
 
-fetch the result of a completed async job. renders exactly like a synchronous `scrape url`.
+fetch the result of a completed async job. renders exactly like a synchronous `scrape url`,
+page status included.
 if the job isn't finished yet, it errors — check `scrape status` first, or use `scrape wait`.
 
 ```bash
@@ -297,9 +327,13 @@ crawlbrulee map https://example.com -o links.txt
 | `--country <iso>`       | ISO 3166-1 alpha-2 country — proxy egress hint (eu / europe also accepted) |
 | `-o, --output <file>`   | write to a file instead of stdout                                          |
 
-the map response's `response_meta` carries a `usage` object (`{ credits, engine, proxy }`, where `engine` is `http` or `cache`)
-alongside its `pagination`/`truncation` blocks. text mode appends it as
-`# usage: <credits> credits · engine <engine> · proxy <proxy>`.
+the map response's `response_meta` carries a `usage` object alongside its
+`pagination`/`truncation` blocks. it has the same cost fields as a scrape, minus slicing:
+`total_credit_cost`, `engine_credit_cost`, `proxy_multiplier`, `engine` (`http` or `cache`),
+`proxy`, and the deprecated `credits` (same value as `total_credit_cost`; will be removed in a
+future version). text mode appends it as
+`# usage: <total_credit_cost> credits · engine <engine> · proxy <proxy>`. a map has no
+`page_status_code`: it reads many pages, not one.
 
 **`--max-urls` and `--limit` are different ceilings.** `--limit` is a page size: it trims
 this response only, and `--page` gets you the rest. `--max-urls` is a discovery budget —
@@ -414,7 +448,8 @@ stdout is **TTY-aware**:
 - override with `--json` (force json) or `--text` (force human-readable).
 - `--compact` produces one-line json (only meaningful with `--json`).
 - errors go to stderr, formatted as `error: <name> — <message>`.
-- exit code is `0` on success, `1` on any failure.
+- exit code is `0` on success, `1` on any failure. a page the site answered with an error
+  status, like a 404, is a success: the scrape worked and you get the page.
 
 examples:
 
@@ -439,6 +474,7 @@ error: usage_allocation_error — out of credits (reason: credit_limit)
 error: antibot_blocked — protected page
 error: too_many_redirects — Target site redirected the request too many times.
 error: page_too_large — The page is too large or too complex to convert.
+error: target_unreachable — Could not reach the target site. (retrying later may help)
 error: service_unavailable — backend unavailable (temporary — safe to retry)
 error: invalid_url — not a valid URL
 error: not logged in — run `crawlbrulee login` or set CRAWLBRULEE_API_KEY
@@ -447,10 +483,17 @@ error: not logged in — run `crawlbrulee login` or set CRAWLBRULEE_API_KEY
 `service_unavailable` (HTTP 503) is a transient backend failure, not a problem with your api
 key — retry it with backoff rather than rotating credentials.
 
+`target_unreachable` (HTTP 502) means we could not reach the site — for example it timed out,
+or its certificate is not valid. the site may be down; try again later. it is not billed. a
+site that answers with an error page is different: that page comes back as a successful
+scrape, with its `page_status_code`.
+an async job that could not reach the site ends as `failed`, so `scrape wait` reports
+`job_failed` with the job's general failure message — submitting it again later may help too.
+
 the exit code is `1` on any failure and `0` on success, so you can branch on it in scripts. it
 tells you _that_ the call failed, not whether retrying will help: for that, read the error name.
-`too_many_requests`, `request_timeout` and `service_unavailable` are worth retrying with backoff;
-`invalid_credentials`, `invalid_url`, `validation_error` and `page_too_large` will fail the same
+`too_many_requests`, `request_timeout`, `service_unavailable` and `target_unreachable` are worth
+retrying with backoff; `invalid_credentials`, `invalid_url`, `validation_error` and `page_too_large` will fail the same
 way every time.
 the name is the word right after `error:` on the stderr line, in `--json` and text mode alike.
 the api docs carry the canonical [error reference](https://crawlbrulee.com/docs/errors) — every

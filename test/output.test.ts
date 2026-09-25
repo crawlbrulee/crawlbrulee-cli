@@ -359,3 +359,243 @@ describe('formatError', () => {
     expect(formatError('weird string')).toBe('error: weird string')
   })
 })
+
+// Responses from the current api carry `page_status_code` and the
+// `*_credit_cost` usage fields. The sdk this cli is built on does not type them
+// yet, so these fixtures are cast. Older api responses leave them out; the
+// tests above cover that shape.
+const NEW_USAGE_404 = {
+  total_credit_cost: 15,
+  engine_credit_cost: 3,
+  proxy_multiplier: 5,
+  screenshot_slicing_credit_cost: 0,
+  engine: 'browser',
+  proxy: 'advanced',
+  credits: 15,
+  screenshot_slices: 0,
+}
+
+describe('renderScrapeText — page status and new usage fields', () => {
+  it('shows the page status in the usage footer when it is not 2xx', () => {
+    const out = renderScrapeText({
+      url: 'https://example.com/missing',
+      requested_url: 'https://example.com/missing',
+      page_status_code: 404,
+      markdown: '# Page not found',
+      metadata: { title: 'Page not found' },
+      response_meta: { usage: NEW_USAGE_404 },
+      warnings: [],
+    } as unknown as ScrapeResponse)
+    expect(out).toBe(
+      '## Page not found\n\n# Page not found\n\n' +
+        '# usage: 15 credits · engine browser · proxy advanced · slices 0 · page status 404'
+    )
+  })
+
+  it('does not show the page status on a 2xx page', () => {
+    const out = renderScrapeText({
+      url: 'https://example.com',
+      requested_url: 'https://example.com',
+      page_status_code: 200,
+      markdown: 'body',
+      response_meta: {
+        usage: {
+          total_credit_cost: 1,
+          engine_credit_cost: 1,
+          proxy_multiplier: 1,
+          screenshot_slicing_credit_cost: 0,
+          engine: 'http',
+          proxy: 'basic',
+          credits: 1,
+          screenshot_slices: 0,
+        },
+      },
+    } as unknown as ScrapeResponse)
+    expect(out).toContain('# usage: 1 credits · engine http · proxy basic · slices 0')
+    expect(out).not.toContain('page status')
+  })
+
+  it('shows a 0-credit page the site answered with a 5xx', () => {
+    const out = renderScrapeText({
+      url: 'https://example.com',
+      requested_url: 'https://example.com',
+      page_status_code: 503,
+      markdown: 'down for maintenance',
+      response_meta: {
+        usage: {
+          total_credit_cost: 0,
+          engine_credit_cost: 0,
+          proxy_multiplier: 1,
+          screenshot_slicing_credit_cost: 0,
+          engine: 'http',
+          proxy: 'basic',
+          credits: 0,
+          screenshot_slices: 0,
+        },
+      },
+    } as unknown as ScrapeResponse)
+    expect(out).toContain(
+      '# usage: 0 credits · engine http · proxy basic · slices 0 · page status 503'
+    )
+  })
+
+  it('reads total_credit_cost and screenshot_slicing_credit_cost over the deprecated names', () => {
+    // The two always match on a real response; distinct values here prove
+    // which one the footer reads.
+    const out = renderScrapeText({
+      url: 'https://example.com',
+      requested_url: 'https://example.com',
+      page_status_code: 200,
+      markdown: 'body',
+      response_meta: {
+        usage: {
+          total_credit_cost: 26,
+          engine_credit_cost: 5,
+          proxy_multiplier: 5,
+          screenshot_slicing_credit_cost: 1,
+          engine: 'screenshot',
+          proxy: 'advanced',
+          credits: 999,
+          screenshot_slices: 7,
+        },
+      },
+    } as unknown as ScrapeResponse)
+    expect(out).toContain('# usage: 26 credits · engine screenshot · proxy advanced · slices 1')
+  })
+
+  it('falls back to credits and screenshot_slices on an older api response', () => {
+    const out = renderScrapeText({
+      url: 'https://example.com',
+      requested_url: 'https://example.com',
+      markdown: 'body',
+      response_meta: {
+        usage: { credits: 6, engine: 'screenshot', proxy: 'basic', screenshot_slices: 1 },
+      },
+    })
+    expect(out).toContain('# usage: 6 credits · engine screenshot · proxy basic · slices 1')
+    expect(out).not.toContain('page status')
+  })
+
+  it('prints the page status on its own line when there is no usage object', () => {
+    const out = renderScrapeText({
+      url: 'https://example.com/gone',
+      requested_url: 'https://example.com/gone',
+      page_status_code: 410,
+      markdown: 'gone',
+    } as unknown as ScrapeResponse)
+    expect(out).toBe('gone\n\n# page status 410')
+  })
+
+  it('ignores a page_status_code that is not an integer', () => {
+    const out = renderScrapeText({
+      url: 'https://example.com',
+      requested_url: 'https://example.com',
+      page_status_code: '404',
+      markdown: 'body',
+      response_meta: {
+        usage: { credits: 1, engine: 'http', proxy: 'basic', screenshot_slices: 0 },
+      },
+    } as unknown as ScrapeResponse)
+    expect(out).not.toContain('page status')
+  })
+
+  it('shows a 3xx final status (not 2xx) too', () => {
+    const out = renderScrapeText({
+      url: 'https://example.com',
+      requested_url: 'https://example.com',
+      page_status_code: 304,
+      markdown: 'body',
+      response_meta: { usage: NEW_USAGE_404 },
+    } as unknown as ScrapeResponse)
+    expect(out).toContain('· page status 304')
+  })
+})
+
+describe('renderJobStatusText — new usage fields', () => {
+  it('reads total_credit_cost and screenshot_slicing_credit_cost when present', () => {
+    const out = renderJobStatusText({
+      job_id: 'job_done',
+      status: 'done',
+      created_at: '2026-07-13T10:00:00.000Z',
+      response_meta: {
+        usage: {
+          total_credit_cost: 16,
+          engine_credit_cost: 3,
+          proxy_multiplier: 5,
+          screenshot_slicing_credit_cost: 1,
+          engine: 'browser',
+          proxy: 'advanced',
+          credits: 999,
+          screenshot_slices: 7,
+        },
+      },
+    } as unknown as Parameters<typeof renderJobStatusText>[0])
+    expect(out).toContain('# usage: 16 credits · engine browser · proxy advanced · slices 1')
+  })
+})
+
+describe('renderMapText — new usage fields', () => {
+  const pagination = { page: 1, limit: 10, total: 1, total_pages: 1, has_more: false }
+  const truncation = {
+    storage_capped: false,
+    response_capped: false,
+    total_before_max_urls: 1,
+    total_detected_before_storage_cap: 1,
+  }
+
+  it('reads total_credit_cost over the deprecated credits', () => {
+    const out = renderMapText({
+      links: [{ url: 'https://a' }],
+      response_meta: {
+        pagination,
+        truncation,
+        usage: {
+          total_credit_cost: 5,
+          engine_credit_cost: 1,
+          proxy_multiplier: 5,
+          engine: 'http',
+          proxy: 'advanced',
+          credits: 999,
+        },
+      },
+    } as unknown as MapResponse)
+    expect(out).toBe('https://a\n\n# usage: 5 credits · engine http · proxy advanced')
+  })
+
+  it('shows a free empty map', () => {
+    const out = renderMapText({
+      links: [],
+      response_meta: {
+        pagination: { ...pagination, total: 0, total_pages: 0 },
+        truncation,
+        usage: {
+          total_credit_cost: 0,
+          engine_credit_cost: 0,
+          proxy_multiplier: 1,
+          engine: 'http',
+          proxy: 'basic',
+          credits: 0,
+        },
+      },
+    } as unknown as MapResponse)
+    expect(out).toContain('# usage: 0 credits · engine http · proxy basic')
+  })
+})
+
+describe('formatError — target_unreachable', () => {
+  it('prints the name, the message and a retry hint', () => {
+    // The sdk this cli is built on has no dedicated class for this error yet,
+    // so it arrives as a plain CrawlbruleeError carrying the name.
+    const err = new CrawlbruleeError('Could not reach the target site.', {
+      status: 502,
+      errorName: 'target_unreachable' as never,
+      response: {
+        name: 'target_unreachable' as never,
+        message: 'Could not reach the target site.',
+      },
+    })
+    expect(formatError(err)).toBe(
+      'error: target_unreachable — Could not reach the target site. (retrying later may help)'
+    )
+  })
+})

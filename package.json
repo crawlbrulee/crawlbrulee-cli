@@ -1,6 +1,6 @@
 {
   "name": "crawlbrulee",
-  "version": "5.0.2",
+  "version": "5.1.0",
   "description": "official cli for crawlbrulee — EU-native web scraping for AI agents & developers. scrape and map from your terminal, clean json when piped.",
   "keywords": [
     "crawlbrulee",

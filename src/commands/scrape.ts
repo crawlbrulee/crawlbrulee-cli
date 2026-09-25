@@ -54,6 +54,18 @@ function addAuthOptions(cmd: Command): Command {
     .option('--api-url <url>', 'Base URL (overrides config + env)')
 }
 
+/**
+ * Shown under `--help` for every command that prints a scrape result. A page
+ * the site answered with an error status is data, not a failure.
+ */
+const PAGE_STATUS_HELP = `
+page status:
+  a page the site answered with an error status, like a 404, is still a
+  successful scrape: you get its content and exit code 0. text output adds
+  "page status 404" to the usage line; json has it in page_status_code.
+  a real error, like target_unreachable when the site can't be reached,
+  goes to stderr with exit code 1.`
+
 function addWaitOptions(cmd: Command): Command {
   return cmd
     .option('--interval <seconds>', 'seconds between status polls while waiting (default 2)')
@@ -129,7 +141,9 @@ function registerScrapeUrlCommand(scrape: Command): void {
     )
 
   addWaitOptions(cmd)
-  addFormatOptions(cmd).action(withErrorHandler(runScrapeUrl))
+  addFormatOptions(cmd)
+    .addHelpText('after', PAGE_STATUS_HELP)
+    .action(withErrorHandler(runScrapeUrl))
 }
 
 function registerScrapeStatusCommand(scrape: Command): void {
@@ -145,7 +159,9 @@ function registerScrapeResultCommand(scrape: Command): void {
     .command('result <job-id>')
     .description('Fetch the result of a completed async scrape job')
   addAuthOptions(cmd)
-  addFormatOptions(cmd).action(withErrorHandler(runScrapeResult))
+  addFormatOptions(cmd)
+    .addHelpText('after', PAGE_STATUS_HELP)
+    .action(withErrorHandler(runScrapeResult))
 }
 
 function registerScrapeWaitCommand(scrape: Command): void {
@@ -154,7 +170,9 @@ function registerScrapeWaitCommand(scrape: Command): void {
     .description('Poll an async scrape job until it finishes, then print the result')
   addAuthOptions(cmd)
   addWaitOptions(cmd)
-  addFormatOptions(cmd).action(withErrorHandler(runScrapeWait))
+  addFormatOptions(cmd)
+    .addHelpText('after', PAGE_STATUS_HELP)
+    .action(withErrorHandler(runScrapeWait))
 }
 
 export async function runScrapeUrl(url: string, opts: ScrapeOptions): Promise<void> {

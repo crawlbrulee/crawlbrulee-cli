@@ -4,6 +4,38 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+## 5.1.0 (2026-09-25)
+
+### added
+
+- **a page the site answered with an error status is now shown as a page.** the api returns a
+  page the site really served — a 404, 410, 401, 503 and so on — as a successful scrape, with
+  the site's status in the new `page_status_code` field. the cli prints it like any page and
+  exits `0`: the scrape worked. in text mode a status other than 2xx is added to the end of the
+  usage line, e.g. `# usage: 15 credits · engine browser · proxy advanced · slices 0 · page status 404`.
+  `scrape url`, `scrape result`, `scrape wait` and `scrape url --async --wait` all do this.
+  `--json` passes `page_status_code` through unchanged. to fail a script on a missing page, check
+  it yourself, e.g. `jq -e '.page_status_code < 400'`.
+- a clear message for the api's new `target_unreachable` error (HTTP 502: we could not reach
+  the site). it prints the api's message plus the hint `(retrying later may help)`, and exits
+  `1`, like every other error.
+- `--help` for `scrape url`, `scrape result` and `scrape wait` explains the page status and the
+  exit code.
+
+### changed
+
+- the usage footer reads the new `total_credit_cost` for its credits, and
+  `screenshot_slicing_credit_cost` for its slices. when a response doesn't have them yet, it
+  falls back to `credits` and `screenshot_slices`. the footer looks the same as before.
+- `--json` passes the new usage fields (`total_credit_cost`, `engine_credit_cost`,
+  `proxy_multiplier`, `screenshot_slicing_credit_cost`) through unchanged. `credits` and
+  `screenshot_slices` are deprecated in the api: they hold the same values as
+  `total_credit_cost` and `screenshot_slicing_credit_cost` and will be removed in a future
+  version. read the new names.
+- the readme documents the new fields, the cost formula
+  (`total_credit_cost = engine_credit_cost × proxy_multiplier + screenshot_slicing_credit_cost`),
+  the page status, and `target_unreachable`.
+
 ## 5.0.2 (2026-09-21)
 
 ### changed

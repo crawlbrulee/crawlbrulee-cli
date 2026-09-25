@@ -1,5 +1,7 @@
 import type { AsyncJobStatusResponse, AsyncScrapeResponse, ScrapeResponse } from '@crawlbrulee/sdk'
 
+import { scrapeFooterLine, scrapeUsageLine } from './usage.js'
+
 export function renderAsyncScrapeText(res: AsyncScrapeResponse): string {
   return `job_id: ${res.job_id}`
 }
@@ -12,10 +14,7 @@ export function renderJobStatusText(res: AsyncJobStatusResponse): string {
   }
 
   if (res.response_meta?.usage) {
-    const { credits, engine, proxy, screenshot_slices } = res.response_meta.usage
-    lines.push(
-      `# usage: ${credits} credits · engine ${engine} · proxy ${proxy} · slices ${screenshot_slices}`
-    )
+    lines.push(scrapeUsageLine(res.response_meta.usage))
   }
 
   return lines.join('\n')
@@ -78,12 +77,12 @@ export function renderScrapeText(res: ScrapeResponse): string {
     }
   }
 
-  if (res.response_meta?.usage) {
-    const { credits, engine, proxy, screenshot_slices } = res.response_meta.usage
+  // A page the site answered with a non-2xx status (a 404, say) is still a
+  // successful scrape: it prints like any page, and the footer names the status.
+  const footer = scrapeFooterLine(res)
+  if (footer) {
     lines.push('')
-    lines.push(
-      `# usage: ${credits} credits · engine ${engine} · proxy ${proxy} · slices ${screenshot_slices}`
-    )
+    lines.push(footer)
   }
 
   return lines.join('\n')

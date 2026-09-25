@@ -1,5 +1,7 @@
 import type { MapResponse } from '@crawlbrulee/sdk'
 
+import { mapUsageLine } from './usage.js'
+
 export function renderMapText(res: MapResponse): string {
   const lines: string[] = res.links.map(l => l.url)
 
@@ -17,9 +19,8 @@ export function renderMapText(res: MapResponse): string {
   }
 
   if (res.response_meta.usage) {
-    const { credits, engine, proxy } = res.response_meta.usage
     if (!has_more) lines.push('')
-    lines.push(`# usage: ${credits} credits · engine ${engine} · proxy ${proxy}`)
+    lines.push(mapUsageLine(res.response_meta.usage))
   }
 
   return lines.join('\n')
