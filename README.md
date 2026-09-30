@@ -324,7 +324,7 @@ crawlbrulee map https://example.com -o links.txt
 | `--no-subdomains`       | exclude subdomains from internal results                                   |
 | `--proxy <tier>`        | `basic` \| `advanced` \| `auto`                                            |
 | `--cache-max-age <sec>` | cache cutoff in seconds                                                    |
-| `--country <iso>`       | ISO 3166-1 alpha-2 country — proxy egress hint (eu / europe also accepted) |
+| `--country <iso>`       | ISO 3166-1 alpha-2 country — proxy egress hint (`eu` / `europe` also accepted) |
 | `-o, --output <file>`   | write to a file instead of stdout                                          |
 
 the map response's `response_meta` carries a `usage` object alongside its
