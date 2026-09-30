@@ -4,7 +4,7 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
-## 5.1.0 (2026-09-25)
+## 5.1.0 (2026-09-30)
 
 ### added
 
@@ -24,6 +24,7 @@ this project follows [Semantic Versioning](https://semver.org). breaking changes
 
 ### changed
 
+- needs `@crawlbrulee/sdk` 1.1.0 or later, which types the new fields.
 - the usage footer reads the new `total_credit_cost` for its credits, and
   `screenshot_slicing_credit_cost` for its slices. when a response doesn't have them yet, it
   falls back to `credits` and `screenshot_slices`. the footer looks the same as before.

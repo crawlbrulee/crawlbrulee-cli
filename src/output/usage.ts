@@ -1,31 +1,18 @@
 import type { MapUsage, ScrapeResponse, Usage } from '@crawlbrulee/sdk'
 
 /**
- * Newer fields on scrape and map responses that `@crawlbrulee/sdk` 1.0 does
- * not type yet. They are all optional: older api responses leave them out, so
- * each read falls back to the older field.
- *
- * TODO(sdk 1.1): once the sdk floor types these, read them straight off
- * `ScrapeResponse` / `Usage` / `MapUsage` and delete this file's casts. Keep
- * the fallbacks to `credits` / `screenshot_slices` until those fields leave
- * the api.
+ * The api still sends the deprecated `credits` / `screenshot_slices` next to
+ * the newer names, and an older api sends only those. Each read prefers the
+ * newer field and falls back to the older one until those fields leave the
+ * api. The sdk passes json through unchecked, so values are checked here.
  */
-interface NewerUsageFields {
-  total_credit_cost?: unknown
-  screenshot_slicing_credit_cost?: unknown
-}
-
-interface NewerScrapeFields {
-  page_status_code?: unknown
-}
-
 function asCount(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
 /** What the request cost: `total_credit_cost`, or `credits` on an older api. */
 export function creditCost(usage: Usage | MapUsage): number {
-  return asCount((usage as NewerUsageFields).total_credit_cost) ?? usage.credits
+  return asCount(usage.total_credit_cost) ?? usage.credits
 }
 
 /**
@@ -33,9 +20,7 @@ export function creditCost(usage: Usage | MapUsage): number {
  * or `screenshot_slices` on an older api.
  */
 export function slicingCost(usage: Usage): number {
-  return (
-    asCount((usage as NewerUsageFields).screenshot_slicing_credit_cost) ?? usage.screenshot_slices
-  )
+  return asCount(usage.screenshot_slicing_credit_cost) ?? usage.screenshot_slices
 }
 
 /**
@@ -43,7 +28,7 @@ export function slicingCost(usage: Usage): number {
  * the response has none (older api) or it isn't an integer.
  */
 export function pageStatusCode(res: ScrapeResponse): number | undefined {
-  const code = (res as NewerScrapeFields).page_status_code
+  const code = res.page_status_code
   return typeof code === 'number' && Number.isInteger(code) ? code : undefined
 }
 

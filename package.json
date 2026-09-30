@@ -58,7 +58,7 @@
     "prepublishOnly": "pnpm verify"
   },
   "dependencies": {
-    "@crawlbrulee/sdk": "^1.0.0",
+    "@crawlbrulee/sdk": "^1.1.0",
     "@inquirer/prompts": "^7.0.0",
     "commander": "^13.0.0"
   },
