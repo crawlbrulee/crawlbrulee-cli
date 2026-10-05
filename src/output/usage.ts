@@ -1,26 +1,38 @@
 import type { MapUsage, ScrapeResponse, Usage } from '@crawlbrulee/sdk'
 
 /**
- * The api still sends the deprecated `credits` / `screenshot_slices` next to
- * the newer names, and an older api sends only those. Each read prefers the
- * newer field and falls back to the older one until those fields leave the
- * api. The sdk passes json through unchecked, so values are checked here.
+ * The sdk passes json through unchecked, so each cost is checked here. A
+ * missing or non-numeric cost reads as `undefined` and its part of the usage
+ * line is left out.
  */
 function asCount(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
-/** What the request cost: `total_credit_cost`, or `credits` on an older api. */
-export function creditCost(usage: Usage | MapUsage): number {
-  return asCount(usage.total_credit_cost) ?? usage.credits
+/** What the request cost: `total_credit_cost`, or `undefined` when missing. */
+export function creditCost(usage: Usage | MapUsage): number | undefined {
+  return asCount(usage.total_credit_cost)
 }
 
 /**
  * The screenshot slicing charge (0 or 1): `screenshot_slicing_credit_cost`,
- * or `screenshot_slices` on an older api.
+ * or `undefined` when missing.
  */
-export function slicingCost(usage: Usage): number {
-  return asCount(usage.screenshot_slicing_credit_cost) ?? usage.screenshot_slices
+export function slicingCost(usage: Usage): number | undefined {
+  return asCount(usage.screenshot_slicing_credit_cost)
+}
+
+/**
+ * The zero data retention charge (0 or 1): `zero_data_retention_credit_cost`.
+ * An older api leaves it out, which reads as 0.
+ */
+export function zeroDataRetentionCost(usage: Usage | MapUsage): number {
+  return asCount(usage.zero_data_retention_credit_cost) ?? 0
+}
+
+/** ` · zero data retention +1` when the charge applied, else an empty string. */
+function zeroDataRetentionNote(usage: Usage | MapUsage): string {
+  return zeroDataRetentionCost(usage) === 1 ? ' · zero data retention +1' : ''
 }
 
 /**
@@ -41,12 +53,26 @@ function pageStatusNote(res: ScrapeResponse): string | undefined {
 
 /** `# usage: …` for a scrape or a finished async job. */
 export function scrapeUsageLine(usage: Usage): string {
-  return `# usage: ${creditCost(usage)} credits · engine ${usage.engine} · proxy ${usage.proxy} · slices ${slicingCost(usage)}`
+  const credits = creditCost(usage)
+  const slices = slicingCost(usage)
+  const parts = [
+    ...(credits === undefined ? [] : [`${credits} credits`]),
+    `engine ${usage.engine}`,
+    `proxy ${usage.proxy}`,
+    ...(slices === undefined ? [] : [`slices ${slices}`]),
+  ]
+  return `# usage: ${parts.join(' · ')}${zeroDataRetentionNote(usage)}`
 }
 
 /** `# usage: …` for a map (no slices). */
 export function mapUsageLine(usage: MapUsage): string {
-  return `# usage: ${creditCost(usage)} credits · engine ${usage.engine} · proxy ${usage.proxy}`
+  const credits = creditCost(usage)
+  const parts = [
+    ...(credits === undefined ? [] : [`${credits} credits`]),
+    `engine ${usage.engine}`,
+    `proxy ${usage.proxy}`,
+  ]
+  return `# usage: ${parts.join(' · ')}${zeroDataRetentionNote(usage)}`
 }
 
 /**

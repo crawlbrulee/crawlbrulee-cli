@@ -80,23 +80,22 @@ crawlbrulee scrape url https://example.com -o out.json
 
 every scrape response carries a `response_meta.usage` object that says what the call cost and why:
 
-| field                            | what it means                                                                                   |
-| -------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `total_credit_cost`              | what the call cost, in credits                                                                  |
-| `engine_credit_cost`             | the engine base: `http` 1, `browser` 3, `screenshot` 5, `cache` 0                               |
-| `proxy_multiplier`               | `1` for the `basic` proxy tier, `5` for `advanced`                                              |
-| `screenshot_slicing_credit_cost` | `1` when the screenshot was cut into slices on this call, else `0`                              |
-| `engine`                         | `http`, `browser`, `screenshot`, or `cache` — what delivered the result                         |
-| `proxy`                          | the **resolved** tier actually used (`basic` \| `advanced`, never `auto`)                       |
-| `credits`                        | deprecated: same value as `total_credit_cost`; will be removed in a future version              |
-| `screenshot_slices`              | deprecated: same value as `screenshot_slicing_credit_cost`; will be removed in a future version |
+| field                             | what it means                                                             |
+| --------------------------------- | ------------------------------------------------------------------------- |
+| `total_credit_cost`               | what the call cost, in credits                                            |
+| `engine_credit_cost`              | the engine base: `http` 1, `browser` 3, `screenshot` 5, `cache` 0         |
+| `proxy_multiplier`                | `1` for the `basic` proxy tier, `5` for `advanced`                        |
+| `screenshot_slicing_credit_cost`  | `1` when the screenshot was cut into slices on this call, else `0`        |
+| `zero_data_retention_credit_cost` | `1` when `--zero-data-retention` added its credit to this call, else `0`  |
+| `engine`                          | `http`, `browser`, `screenshot`, or `cache` — what delivered the result   |
+| `proxy`                           | the **resolved** tier actually used (`basic` \| `advanced`, never `auto`) |
 
-`total_credit_cost` is always `engine_credit_cost × proxy_multiplier + screenshot_slicing_credit_cost`.
+`total_credit_cost` is always `engine_credit_cost × proxy_multiplier + screenshot_slicing_credit_cost + zero_data_retention_credit_cost`.
 a fully cached result costs `0` (only parts still computed fresh, e.g. a newly produced
 screenshot-slice variant, are charged), and so does a page we don't bill — every `*_credit_cost`
 field is `0` then, while `proxy_multiplier` still shows the tier the call ran on. see [credits & pricing](https://crawlbrulee.com/docs/credits-and-pricing) for what is billed.
 
-- in text mode this is printed as a trailing comment, e.g. `# usage: 15 credits · engine browser · proxy advanced · slices 0`;
+- in text mode this is printed as a trailing comment, e.g. `# usage: 15 credits · engine browser · proxy advanced · slices 0`.
 - in json it's the `response_meta.usage` object, passed through as the api sent it. page metadata (title, OG/Twitter tags, etc.) is returned under `metadata`. `url` is the url actually scraped (after redirects, in normalized form) and `requested_url` is the url you requested, echoed verbatim.
 
 **a 404 page is still a successful scrape.** `page_status_code` is the http status the site
@@ -201,6 +200,7 @@ crawlbrulee scrape url https://x.com -ss full,1280,720,desktop,800   # sliced
 --require-js                         render with a headless browser
 --exclude-selectors "nav,footer"     CSS selectors stripped from the result
 --cache-max-age 86400                cache cutoff in seconds
+--zero-data-retention                keep the result out of the shared cache (+1 credit; must be enabled for your organization)
 --locale en-US                       BCP-47 locale (Accept-Language + navigator.language)
 --country US                         ISO 3166-1 alpha-2 country code (eu / europe also accepted)
 -o, --output <file>                  write to a file instead of stdout
@@ -211,6 +211,16 @@ what each proxy tier does, and how `--country`/`--locale` steer egress, is docum
 covered in [caching](https://crawlbrulee.com/docs/scrape/caching). for the complete request
 contract behind these flags, see the [scrape endpoint](https://crawlbrulee.com/docs/scrape)
 reference.
+
+**zero data retention**
+
+`--zero-data-retention` works on `scrape url` (also with `--async`) and on `map`. it keeps the result out of the shared cache; anything stored to deliver it is kept for 24 hours, then deleted. it adds 1 credit and must be enabled for your organization. see [zero data retention](https://crawlbrulee.com/docs/zero-data-retention).
+
+```bash
+crawlbrulee scrape url https://example.com --zero-data-retention
+```
+
+in text mode the usage line then ends with `· zero data retention +1`. if it is not enabled, the call fails with `zero_data_retention_not_enabled` (HTTP 403, not billed).
 
 **async scrape**
 
@@ -313,26 +323,26 @@ crawlbrulee map https://example.com --country DE
 crawlbrulee map https://example.com -o links.txt
 ```
 
-| flag                    | effect                                                                     |
-| ----------------------- | -------------------------------------------------------------------------- |
-| `--max-urls <n>`        | total urls to collect (default 5000, api max 100000)                       |
-| `--limit <n>`           | urls per page (default 5000, api max 10000)                                |
-| `--page <n>`            | page number (1-indexed)                                                    |
-| `--sitemap-only`        | skip homepage extraction, use `sitemap.xml` only                           |
-| `--internal-only`       | same-domain links only                                                     |
-| `--external-only`       | external-domain links only                                                 |
-| `--no-subdomains`       | exclude subdomains from internal results                                   |
-| `--proxy <tier>`        | `basic` \| `advanced` \| `auto`                                            |
-| `--cache-max-age <sec>` | cache cutoff in seconds                                                    |
-| `--country <iso>`       | ISO 3166-1 alpha-2 country — proxy egress hint (`eu` / `europe` also accepted) |
-| `-o, --output <file>`   | write to a file instead of stdout                                          |
+| flag                    | effect                                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------ |
+| `--max-urls <n>`        | total urls to collect (default 5000, api max 100000)                                       |
+| `--limit <n>`           | urls per page (default 5000, api max 10000)                                                |
+| `--page <n>`            | page number (1-indexed)                                                                    |
+| `--sitemap-only`        | skip homepage extraction, use `sitemap.xml` only                                           |
+| `--internal-only`       | same-domain links only                                                                     |
+| `--external-only`       | external-domain links only                                                                 |
+| `--no-subdomains`       | exclude subdomains from internal results                                                   |
+| `--proxy <tier>`        | `basic` \| `advanced` \| `auto`                                                            |
+| `--cache-max-age <sec>` | cache cutoff in seconds                                                                    |
+| `--zero-data-retention` | keep the result out of the shared cache (+1 credit; must be enabled for your organization) |
+| `--country <iso>`       | ISO 3166-1 alpha-2 country — proxy egress hint (`eu` / `europe` also accepted)             |
+| `-o, --output <file>`   | write to a file instead of stdout                                                          |
 
 the map response's `response_meta` carries a `usage` object alongside its
 `pagination`/`truncation` blocks. it has the same cost fields as a scrape, minus slicing:
 `total_credit_cost`, `engine_credit_cost`, `proxy_multiplier`, `engine` (`http` or `cache`),
-`proxy`, and the deprecated `credits` (same value as `total_credit_cost`; will be removed in a
-future version). text mode appends it as
-`# usage: <total_credit_cost> credits · engine <engine> · proxy <proxy>`. a map has no
+`proxy`, `zero_data_retention_credit_cost` (`0` or `1`). text mode appends it as
+`# usage: <total_credit_cost> credits · engine <engine> · proxy <proxy>` . a map has no
 `page_status_code`: it reads many pages, not one.
 
 **`--max-urls` and `--limit` are different ceilings.** `--limit` is a page size: it trims
@@ -475,6 +485,7 @@ error: antibot_blocked — protected page
 error: too_many_redirects — Target site redirected the request too many times.
 error: page_too_large — The page is too large or too complex to convert.
 error: target_unreachable — Could not reach the target site. (retrying later may help)
+error: zero_data_retention_not_enabled — zero_data_retention is not enabled for your organization. (resend without --zero-data-retention, or ask us to turn it on for your organization)
 error: service_unavailable — backend unavailable (temporary — safe to retry)
 error: invalid_url — not a valid URL
 error: not logged in — run `crawlbrulee login` or set CRAWLBRULEE_API_KEY

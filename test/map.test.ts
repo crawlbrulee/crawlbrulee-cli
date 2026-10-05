@@ -186,3 +186,15 @@ describe('runMap (end-to-end via mocked fetch)', () => {
     expect(writeSpy).toHaveBeenCalled()
   })
 })
+
+describe('buildMapRequest — zero data retention', () => {
+  it('--zero-data-retention sets zero_data_retention', () => {
+    expect(
+      buildMapRequest('https://example.com', { zeroDataRetention: true }).zero_data_retention
+    ).toBe(true)
+  })
+
+  it('leaves the field out when the flag is not given', () => {
+    expect(buildMapRequest('https://example.com', {})).not.toHaveProperty('zero_data_retention')
+  })
+})

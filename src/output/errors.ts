@@ -30,5 +30,9 @@ function hintFor(err: CrawlbruleeError): string {
     // is not valid, for example). Not a problem with the request or the key.
     return ' (retrying later may help)'
   }
+  if (errorName === 'zero_data_retention_not_enabled') {
+    // HTTP 403: the organization does not have the option yet. Not billed.
+    return ' (resend without --zero-data-retention, or ask us to turn it on for your organization)'
+  }
   return ''
 }

@@ -31,8 +31,6 @@ const PAGE_404 = {
       screenshot_slicing_credit_cost: 0,
       engine: 'browser',
       proxy: 'advanced',
-      credits: 15,
-      screenshot_slices: 0,
     },
   },
   warnings: [],
@@ -153,7 +151,12 @@ describe('page status and target_unreachable (via mocked fetch)', () => {
             requested_url: 'https://example.com',
             markdown: '# hi',
             response_meta: {
-              usage: { credits: 1, engine: 'http', proxy: 'basic', screenshot_slices: 0 },
+              usage: {
+                total_credit_cost: 1,
+                screenshot_slicing_credit_cost: 0,
+                engine: 'http',
+                proxy: 'basic',
+              },
             },
           })
         )
@@ -230,6 +233,54 @@ describe('page status and target_unreachable (via mocked fetch)', () => {
       expect(stdoutOf(errSpy)).toContain(
         'error: target_unreachable — Could not reach the target site.'
       )
+      expect(exitSpy).toHaveBeenCalledWith(1)
+    })
+  })
+
+  describe('zero_data_retention_not_enabled (HTTP 403) is an error', () => {
+    const NOT_ENABLED = {
+      name: 'zero_data_retention_not_enabled',
+      message:
+        'zero_data_retention is not enabled for your organization. Contact us to turn it on.',
+    }
+
+    it('sends the flag, prints a clear message to stderr and exits 1', async () => {
+      const fetchMock = vi.fn(async () => jsonResponse(NOT_ENABLED, 403))
+      vi.stubGlobal('fetch', fetchMock)
+      const writeSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+      const errSpy = vi.spyOn(process.stderr, 'write').mockReturnValue(true)
+      const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never)
+
+      await withErrorHandler(runScrapeUrl)('https://example.com', {
+        ...AUTH,
+        text: true,
+        zeroDataRetention: true,
+      })
+
+      const init = (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1]
+      expect(JSON.parse(String(init.body)).zero_data_retention).toBe(true)
+      expect(stdoutOf(errSpy)).toBe(
+        'error: zero_data_retention_not_enabled — zero_data_retention is not enabled for your organization. Contact us to turn it on. (resend without --zero-data-retention, or ask us to turn it on for your organization)\n'
+      )
+      expect(exitSpy).toHaveBeenCalledWith(1)
+      expect(writeSpy).not.toHaveBeenCalled()
+    })
+
+    it('map exits 1 the same way', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => jsonResponse(NOT_ENABLED, 403))
+      )
+      const errSpy = vi.spyOn(process.stderr, 'write').mockReturnValue(true)
+      const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never)
+
+      await withErrorHandler(runMap)('https://example.com', {
+        ...AUTH,
+        text: true,
+        zeroDataRetention: true,
+      })
+
+      expect(stdoutOf(errSpy)).toContain('error: zero_data_retention_not_enabled')
       expect(exitSpy).toHaveBeenCalledWith(1)
     })
   })

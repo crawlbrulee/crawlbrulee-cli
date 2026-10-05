@@ -462,3 +462,20 @@ describe('runScrapeUrl (end-to-end via mocked fetch)', () => {
     ).rejects.toThrow(/not logged in/)
   })
 })
+
+describe('buildScrapeRequest — zero data retention', () => {
+  it('--zero-data-retention sets zero_data_retention at the top level', () => {
+    const body = buildScrapeRequest('https://example.com', { zeroDataRetention: true })
+    expect(body.zero_data_retention).toBe(true)
+  })
+
+  it('leaves the field out when the flag is not given', () => {
+    const body = buildScrapeRequest('https://example.com', {})
+    expect(body).not.toHaveProperty('zero_data_retention')
+  })
+
+  it('the async request carries it too', () => {
+    const body = buildAsyncScrapeRequest('https://example.com', { zeroDataRetention: true })
+    expect(body.zero_data_retention).toBe(true)
+  })
+})

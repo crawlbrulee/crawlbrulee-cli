@@ -29,6 +29,7 @@ export interface ScrapeOptions extends CommonOptions {
   excludeSelectors?: string
   keepAds?: boolean
   cacheMaxAge?: string
+  zeroDataRetention?: boolean
 
   locale?: string
   country?: string
@@ -116,6 +117,10 @@ function registerScrapeUrlCommand(scrape: Command): void {
       'keep ads, cookie banners, consent dialogs and chat widgets (they are removed by default)'
     )
     .option('--cache-max-age <seconds>', 'cache max age in seconds')
+    .option(
+      '--zero-data-retention',
+      'keeps the result out of the shared cache; anything stored to deliver it is kept for 24 hours, then deleted. adds 1 credit. must be enabled for your organization'
+    )
 
     .option('--locale <bcp47>', 'BCP-47 locale tag (e.g. en-US)')
     .option(
@@ -331,6 +336,7 @@ export function buildScrapeRequest(url: string, opts: ScrapeOptions): ScrapeRequ
   if (opts.cacheMaxAge !== undefined) {
     body.cache = { max_age: parseNonNegativeInt(opts.cacheMaxAge, '--cache-max-age') }
   }
+  if (opts.zeroDataRetention) body.zero_data_retention = true
   if (opts.locale || opts.country) {
     const location: { locale?: string; country?: string } = {}
     if (opts.locale) location.locale = opts.locale

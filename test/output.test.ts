@@ -4,6 +4,7 @@ import {
   RateLimitError,
   UsageAllocationError,
   ValidationError,
+  ZeroDataRetentionNotEnabledError,
 } from '@crawlbrulee/sdk'
 import { describe, expect, it } from 'vitest'
 
@@ -48,7 +49,13 @@ describe('renderScrapeText', () => {
       markdown: '# Hello\n\nworld',
       metadata: { title: 'Example Domain' },
       response_meta: {
-        usage: { credits: 1, engine: 'http', proxy: 'basic', screenshot_slices: 0 },
+        usage: {
+          total_credit_cost: 1,
+          screenshot_slicing_credit_cost: 0,
+          engine: 'http',
+          proxy: 'basic',
+          zero_data_retention_credit_cost: 0,
+        },
       },
     })
     expect(out).toBe(
@@ -62,7 +69,13 @@ describe('renderScrapeText', () => {
       requested_url: 'https://example.com',
       markdown: 'body',
       response_meta: {
-        usage: { credits: 6, engine: 'screenshot', proxy: 'basic', screenshot_slices: 1 },
+        usage: {
+          total_credit_cost: 6,
+          screenshot_slicing_credit_cost: 1,
+          engine: 'screenshot',
+          proxy: 'basic',
+          zero_data_retention_credit_cost: 0,
+        },
       },
     })
     expect(out).toContain('# usage: 6 credits · engine screenshot · proxy basic · slices 1')
@@ -74,7 +87,13 @@ describe('renderScrapeText', () => {
       requested_url: 'https://example.com',
       markdown: 'body',
       response_meta: {
-        usage: { credits: 0, engine: 'cache', proxy: 'basic', screenshot_slices: 0 },
+        usage: {
+          total_credit_cost: 0,
+          screenshot_slicing_credit_cost: 0,
+          engine: 'cache',
+          proxy: 'basic',
+          zero_data_retention_credit_cost: 0,
+        },
       },
     })
     expect(out).toContain('# usage: 0 credits · engine cache · proxy basic · slices 0')
@@ -86,7 +105,13 @@ describe('renderScrapeText', () => {
       requested_url: 'https://example.com',
       cleaned_html: '<p>hi</p>',
       response_meta: {
-        usage: { credits: 1, engine: 'http', proxy: 'basic', screenshot_slices: 0 },
+        usage: {
+          total_credit_cost: 1,
+          screenshot_slicing_credit_cost: 0,
+          engine: 'http',
+          proxy: 'basic',
+          zero_data_retention_credit_cost: 0,
+        },
       },
     })
     expect(out).toContain('<p>hi</p>')
@@ -123,7 +148,13 @@ describe('renderScrapeText', () => {
         ],
       },
       response_meta: {
-        usage: { credits: 1, engine: 'http', proxy: 'basic', screenshot_slices: 0 },
+        usage: {
+          total_credit_cost: 1,
+          screenshot_slicing_credit_cost: 0,
+          engine: 'http',
+          proxy: 'basic',
+          zero_data_retention_credit_cost: 0,
+        },
       },
     })
     expect(out).toContain('screenshot: https://cdn/x.png (1 slices)')
@@ -139,7 +170,13 @@ describe('renderScrapeText', () => {
       requested_url: 'https://example.com',
       markdown: 'body',
       response_meta: {
-        usage: { credits: 1, engine: 'http', proxy: 'basic', screenshot_slices: 0 },
+        usage: {
+          total_credit_cost: 1,
+          screenshot_slicing_credit_cost: 0,
+          engine: 'http',
+          proxy: 'basic',
+          zero_data_retention_credit_cost: 0,
+        },
       },
     } as unknown as ScrapeResponse
     const out = renderScrapeText(res)
@@ -153,7 +190,13 @@ describe('renderScrapeText', () => {
       requested_url: 'https://example.com',
       links: [{ text: 't', href: 'https://a', internal: true }],
       response_meta: {
-        usage: { credits: 1, engine: 'http', proxy: 'basic', screenshot_slices: 0 },
+        usage: {
+          total_credit_cost: 1,
+          screenshot_slicing_credit_cost: 0,
+          engine: 'http',
+          proxy: 'basic',
+          zero_data_retention_credit_cost: 0,
+        },
       },
     })
     expect(out).toContain('https://a')
@@ -166,7 +209,13 @@ describe('renderScrapeText', () => {
       markdown: 'body',
       warnings: ['screenshot_truncated'],
       response_meta: {
-        usage: { credits: 1, engine: 'http', proxy: 'basic', screenshot_slices: 0 },
+        usage: {
+          total_credit_cost: 1,
+          screenshot_slicing_credit_cost: 0,
+          engine: 'http',
+          proxy: 'basic',
+          zero_data_retention_credit_cost: 0,
+        },
       },
     })
     expect(out).toContain('# warning: screenshot_truncated')
@@ -200,7 +249,13 @@ describe('renderJobStatusText', () => {
       status: 'done',
       created_at: '2026-07-13T10:00:00.000Z',
       response_meta: {
-        usage: { credits: 15, engine: 'browser', proxy: 'advanced', screenshot_slices: 0 },
+        usage: {
+          total_credit_cost: 15,
+          screenshot_slicing_credit_cost: 0,
+          engine: 'browser',
+          proxy: 'advanced',
+          zero_data_retention_credit_cost: 0,
+        },
       },
     })
     expect(out).toContain('status: done')
@@ -220,7 +275,7 @@ describe('renderMapText', () => {
           total_before_max_urls: 2,
           total_detected_before_storage_cap: 2,
         },
-        usage: { credits: 1, engine: 'http', proxy: 'basic' },
+        usage: { total_credit_cost: 1, engine: 'http', proxy: 'basic' },
       },
     } as MapResponse)
     expect(out).toBe('https://a\nhttps://b\n\n# usage: 1 credits · engine http · proxy basic')
@@ -237,7 +292,7 @@ describe('renderMapText', () => {
           total_before_max_urls: 3,
           total_detected_before_storage_cap: 3,
         },
-        usage: { credits: 1, engine: 'http', proxy: 'basic' },
+        usage: { total_credit_cost: 1, engine: 'http', proxy: 'basic' },
       },
     } as MapResponse)
     expect(out).toContain('… and 2 more (use --page 2)')
@@ -254,7 +309,7 @@ describe('renderMapText', () => {
           total_before_max_urls: 1,
           total_detected_before_storage_cap: 1,
         },
-        usage: { credits: 1, engine: 'http', proxy: 'basic' },
+        usage: { total_credit_cost: 1, engine: 'http', proxy: 'basic' },
       },
     } as MapResponse)
     expect(out).toContain('# usage: 1 credits · engine http · proxy basic')
@@ -371,8 +426,6 @@ const NEW_USAGE_404 = {
   screenshot_slicing_credit_cost: 0,
   engine: 'browser',
   proxy: 'advanced',
-  credits: 15,
-  screenshot_slices: 0,
 }
 
 describe('renderScrapeText — page status and new usage fields', () => {
@@ -406,8 +459,6 @@ describe('renderScrapeText — page status and new usage fields', () => {
           screenshot_slicing_credit_cost: 0,
           engine: 'http',
           proxy: 'basic',
-          credits: 1,
-          screenshot_slices: 0,
         },
       },
     } as unknown as ScrapeResponse)
@@ -429,8 +480,6 @@ describe('renderScrapeText — page status and new usage fields', () => {
           screenshot_slicing_credit_cost: 0,
           engine: 'http',
           proxy: 'basic',
-          credits: 0,
-          screenshot_slices: 0,
         },
       },
     } as unknown as ScrapeResponse)
@@ -455,24 +504,26 @@ describe('renderScrapeText — page status and new usage fields', () => {
           screenshot_slicing_credit_cost: 1,
           engine: 'screenshot',
           proxy: 'advanced',
-          credits: 999,
-          screenshot_slices: 7,
         },
       },
     } as unknown as ScrapeResponse)
     expect(out).toContain('# usage: 26 credits · engine screenshot · proxy advanced · slices 1')
   })
 
-  it('falls back to credits and screenshot_slices on an older api response', () => {
+  it('leaves the credits and slices parts out when the usage has no cost fields', () => {
     const out = renderScrapeText({
       url: 'https://example.com',
       requested_url: 'https://example.com',
       markdown: 'body',
       response_meta: {
-        usage: { credits: 6, engine: 'screenshot', proxy: 'basic', screenshot_slices: 1 },
+        usage: {
+          engine: 'screenshot',
+          proxy: 'basic',
+          zero_data_retention_credit_cost: 0,
+        },
       },
     })
-    expect(out).toContain('# usage: 6 credits · engine screenshot · proxy basic · slices 1')
+    expect(out).toContain('# usage: engine screenshot · proxy basic')
     expect(out).not.toContain('page status')
   })
 
@@ -493,7 +544,13 @@ describe('renderScrapeText — page status and new usage fields', () => {
       page_status_code: '404',
       markdown: 'body',
       response_meta: {
-        usage: { credits: 1, engine: 'http', proxy: 'basic', screenshot_slices: 0 },
+        usage: {
+          total_credit_cost: 1,
+          screenshot_slicing_credit_cost: 0,
+          engine: 'http',
+          proxy: 'basic',
+          zero_data_retention_credit_cost: 0,
+        },
       },
     } as unknown as ScrapeResponse)
     expect(out).not.toContain('page status')
@@ -525,8 +582,6 @@ describe('renderJobStatusText — new usage fields', () => {
           screenshot_slicing_credit_cost: 1,
           engine: 'browser',
           proxy: 'advanced',
-          credits: 999,
-          screenshot_slices: 7,
         },
       },
     } as unknown as Parameters<typeof renderJobStatusText>[0])
@@ -555,7 +610,6 @@ describe('renderMapText — new usage fields', () => {
           proxy_multiplier: 5,
           engine: 'http',
           proxy: 'advanced',
-          credits: 999,
         },
       },
     } as unknown as MapResponse)
@@ -574,7 +628,6 @@ describe('renderMapText — new usage fields', () => {
           proxy_multiplier: 1,
           engine: 'http',
           proxy: 'basic',
-          credits: 0,
         },
       },
     } as unknown as MapResponse)
@@ -596,6 +649,97 @@ describe('formatError — target_unreachable', () => {
     })
     expect(formatError(err)).toBe(
       'error: target_unreachable — Could not reach the target site. (retrying later may help)'
+    )
+  })
+})
+
+describe('zero data retention — usage line', () => {
+  const scrape = (cost: number | undefined): ScrapeResponse =>
+    ({
+      url: 'https://example.com',
+      requested_url: 'https://example.com',
+      markdown: 'hi',
+      response_meta: {
+        usage: {
+          total_credit_cost: 6,
+          engine_credit_cost: 1,
+          proxy_multiplier: 5,
+          screenshot_slicing_credit_cost: 0,
+          ...(cost === undefined ? {} : { zero_data_retention_credit_cost: cost }),
+          engine: 'http',
+          proxy: 'advanced',
+        },
+      },
+    }) as ScrapeResponse
+
+  it('adds +1 to the scrape usage line when the charge applied', () => {
+    expect(renderScrapeText(scrape(1))).toContain(
+      '# usage: 6 credits · engine http · proxy advanced · slices 0 · zero data retention +1'
+    )
+  })
+
+  it('adds nothing when the charge is 0', () => {
+    const out = renderScrapeText(scrape(0))
+    expect(out).toContain('# usage: 6 credits · engine http · proxy advanced · slices 0')
+    expect(out).not.toContain('zero data retention')
+  })
+
+  it('adds nothing when an older api leaves the field out', () => {
+    expect(renderScrapeText(scrape(undefined))).not.toContain('zero data retention')
+  })
+
+  it('puts the +1 before the page status', () => {
+    const res = { ...scrape(1), page_status_code: 404 } as ScrapeResponse
+    expect(renderScrapeText(res)).toContain('slices 0 · zero data retention +1 · page status 404')
+  })
+
+  it('adds +1 to the finished job usage line', () => {
+    const res = scrape(1)
+    expect(
+      renderJobStatusText({
+        job_id: 'j1',
+        status: 'done',
+        response_meta: res.response_meta,
+      } as never)
+    ).toContain('zero data retention +1')
+  })
+
+  it('adds +1 to the map usage line', () => {
+    const out = renderMapText({
+      links: [{ url: 'https://a' }],
+      response_meta: {
+        pagination: { page: 1, limit: 10, total: 1, total_pages: 1, has_more: false },
+        truncation: {
+          storage_capped: false,
+          response_capped: false,
+          total_before_max_urls: 1,
+          total_detected_before_storage_cap: 1,
+        },
+        usage: {
+          total_credit_cost: 2,
+          engine_credit_cost: 1,
+          proxy_multiplier: 1,
+          zero_data_retention_credit_cost: 1,
+          engine: 'http',
+          proxy: 'basic',
+        },
+      },
+    } as MapResponse)
+    expect(out).toContain('# usage: 2 credits · engine http · proxy basic · zero data retention +1')
+  })
+})
+
+describe('formatError — zero_data_retention_not_enabled', () => {
+  it('names the error and says what to do', () => {
+    const message =
+      'zero_data_retention is not enabled for your organization. Contact us to turn it on.'
+    const err = new ZeroDataRetentionNotEnabledError(message, {
+      status: 403,
+      errorName: 'zero_data_retention_not_enabled',
+      response: { name: 'zero_data_retention_not_enabled', message },
+    })
+    expect(formatError(err)).toBe(
+      `error: zero_data_retention_not_enabled — ${message} (resend without --zero-data-retention, or ask us to turn it on for your organization)`
     )
   })
 })

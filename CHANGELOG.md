@@ -4,6 +4,21 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+## 5.2.0 (2026-10-05)
+
+### added
+
+- **zero data retention.** `--zero-data-retention` on `scrape url` (also with `--async`) and `map`. it keeps the result out of the shared cache and must be enabled for your organization. see [zero data retention](https://crawlbrulee.com/docs/zero-data-retention).
+- in text mode the usage line ends with `· zero data retention +1` when that credit was charged. `--json` passes the new usage field `zero_data_retention_credit_cost` through unchanged.
+- a clear message for the api's `zero_data_retention_not_enabled` error (HTTP 403): the api's message plus a hint to resend without the flag. exit code `1`, not billed.
+
+### changed
+
+- needs `@crawlbrulee/sdk` 1.2.0 or later, which types the new field and error.
+- `total_credit_cost` is now `engine_credit_cost × proxy_multiplier + screenshot_slicing_credit_cost + zero_data_retention_credit_cost`
+  in the readme.
+- removed the deprecated usage fields `credits` and `screenshot_slices` (now `total_credit_cost` and `screenshot_slicing_credit_cost`). the usage line leaves out a part whose field is missing. `--json` is unchanged.
+
 ## 5.1.0 (2026-09-30)
 
 ### added

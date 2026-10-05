@@ -17,6 +17,7 @@ export interface MapOptions extends CommonOptions {
 
   proxy?: string
   cacheMaxAge?: string
+  zeroDataRetention?: boolean
   country?: string
 }
 
@@ -43,6 +44,10 @@ export function registerMapCommand(program: Command): void {
       'proxy tier: basic | advanced | auto (default: auto — tries basic tier first, escalates to advanced on failure)'
     )
     .option('--cache-max-age <seconds>', 'cache max age in seconds')
+    .option(
+      '--zero-data-retention',
+      'keeps the result out of the shared cache; anything stored to deliver it is kept for 24 hours, then deleted. adds 1 credit. must be enabled for your organization'
+    )
     .option(
       '--country <iso>',
       "ISO 3166-1 alpha-2 country code (e.g. US) — proxy egress hint; 'eu' / 'europe' also accepted"
@@ -72,6 +77,7 @@ export function buildMapRequest(url: string, opts: MapOptions): MapRequest {
   if (opts.page !== undefined) body.page = parsePositiveInt(opts.page, '--page')
   if (opts.sitemapOnly) body.sitemap_only = true
   if (opts.proxy) body.proxy = parseProxy(opts.proxy)
+  if (opts.zeroDataRetention) body.zero_data_retention = true
   if (opts.country) body.location = { country: opts.country }
 
   if (opts.cacheMaxAge !== undefined) {
