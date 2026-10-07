@@ -184,6 +184,10 @@ in rare cases a screenshot can't be captured. if you requested other outputs too
 them and the response leaves out the `screenshot` field; a screenshot-only call errors with
 `unsupported_screenshot_output` instead, and you're not charged for it.
 
+the screenshot url, and every slice url, is a signed link that expires 24 hours after the scrape
+(for `--async`, 24 hours after you submitted the job). download the image and keep the file, not
+the link.
+
 `full` is a typeable shortcut for `full_page`. positions are strictly left-to-right — to set position N you must also fill 1..N-1. a width or height outside `16–10000` is rejected up front with a clear message. full capture options: [screenshots](https://crawlbrulee.com/docs/scrape/screenshots).
 
 ```bash
@@ -287,6 +291,10 @@ is `done`, not `failed` — the page is in the result, with its `page_status_cod
 fetch the result of a completed async job. renders exactly like a synchronous `scrape url`,
 page status included.
 if the job isn't finished yet, it errors — check `scrape status` first, or use `scrape wait`.
+
+`scrape status` and `scrape result` answer for 24 hours after you submit the job. after that both
+return `not_found`, the same as for an unknown job id, and the screenshot links in the result have
+expired too.
 
 ```bash
 crawlbrulee scrape result job_abc123

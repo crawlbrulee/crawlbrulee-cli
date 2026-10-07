@@ -1,6 +1,6 @@
 {
   "name": "crawlbrulee",
-  "version": "5.2.0",
+  "version": "5.2.1",
   "description": "official cli for crawlbrulee — EU-native web scraping for AI agents & developers. scrape and map from your terminal, clean json when piped.",
   "keywords": [
     "crawlbrulee",
@@ -58,7 +58,7 @@
     "prepublishOnly": "pnpm verify"
   },
   "dependencies": {
-    "@crawlbrulee/sdk": "^1.2.0",
+    "@crawlbrulee/sdk": "^1.2.1",
     "@inquirer/prompts": "^7.0.0",
     "commander": "^13.0.0"
   },

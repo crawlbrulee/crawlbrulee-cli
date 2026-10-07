@@ -4,6 +4,13 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+## 5.2.1 (2026-10-07)
+
+### changed
+
+- the readme says that screenshot links are signed and expire 24 hours after the scrape (for `--async`, 24 hours after submit), and that `scrape status` and `scrape result` answer for 24 hours after submit, then return `not_found`.
+- needs `@crawlbrulee/sdk` 1.2.1 or later.
+
 ## 5.2.0 (2026-10-05)
 
 ### added
