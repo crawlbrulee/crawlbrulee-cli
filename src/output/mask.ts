@@ -1,5 +1,4 @@
-// Current keys are prefixed `cwbl_` (prod) / `cwbl_staging_` (staging); the
-// legacy `cble_` prefix still authenticates, so mask both the same way.
+// Keys start with `cwbl_`; older `cble_` keys still work, so mask both the same way.
 const KEY_PREFIXES = ['cwbl_', 'cble_'] as const
 
 export function maskApiKey(key: string): string {

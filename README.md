@@ -66,7 +66,7 @@ crawlbrulee scrape url https://example.com
 
 ### `crawlbrulee scrape url <url>`
 
-scrape a url. default extraction is `markdown + metadata`.
+scrape a url. default extraction is `markdown + metadata` (only elements + metadata when you pass `--element` / `--elements` and no content flag).
 
 ```bash
 crawlbrulee scrape url https://example.com                # markdown to stdout
@@ -116,25 +116,26 @@ crawlbrulee scrape url https://example.com/some-page --json | jq -e '.page_statu
 
 non-fatal notices ride along as `warnings` — in text mode they print as `# warning: <code>` lines, in json on the `warnings` array. an outsized page is truncated rather than refused, and the code says which part was cut:
 
-| code                      | what it means for the payload                                                                    |
-| ------------------------- | ------------------------------------------------------------------------------------------------ |
-| `screenshot_truncated`    | the page was taller than the 15,000px scrolling-capture cap; you get the top of the page.        |
-| `links_truncated`         | more than 30,000 links on the page — the `links` array is cut at the cap and is incomplete.      |
-| `inline_images_truncated` | more than 10,000 inline images — the `images` array is cut at the cap and is incomplete.         |
-| `raw_html_truncated`      | the page body exceeded 10,000,000 characters — the html is cut at a tag boundary, never mid-tag. |
-| `metadata_truncated`      | the page head exceeded 2,000,000 characters — `metadata` can be missing tags past the cut.       |
+| code                      | what it means for the payload                                                                                                                       |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `screenshot_truncated`    | the page was taller than the 15,000px scrolling-capture cap; you get the top of the page.                                                           |
+| `links_truncated`         | more than 30,000 links on the page — the `links` array is cut at the cap and is incomplete.                                                         |
+| `inline_images_truncated` | more than 10,000 inline images — the `images` array is cut at the cap and is incomplete.                                                            |
+| `raw_html_truncated`      | the page body exceeded 10,000,000 characters — the html is cut at a tag boundary, never mid-tag.                                                    |
+| `elements_truncated`      | an `elements` value hit a limit: a list is cut at 1,000 matches, a value that didn't fit is `null`, or the request reached 10,000 matches in total. |
 
 a second family reports a section whose extraction failed outright — the field comes back omitted or empty while the rest of the scrape succeeds, so an empty array with one of these is not the same as a page that genuinely had none:
 
-| code                        | what it means for the payload                                |
-| --------------------------- | ------------------------------------------------------------ |
-| `links_unavailable`         | link extraction failed — `links` is omitted or empty.        |
-| `inline_images_unavailable` | image extraction failed — `images` is omitted or empty.      |
-| `metadata_unavailable`      | metadata extraction failed — `metadata` is omitted or empty. |
+| code                        | what it means for the payload                                                                                    |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `links_unavailable`         | link extraction failed — `links` is omitted or empty.                                                            |
+| `inline_images_unavailable` | image extraction failed — `images` is omitted or empty.                                                          |
+| `metadata_unavailable`      | metadata extraction failed — `metadata` is omitted or empty.                                                     |
+| `screenshot_unavailable`    | a screenshot was asked for, but the page came back from the `http` engine without one — `screenshot` is omitted. |
 
-the page body has no such code: if it can't be extracted the scrape fails outright rather than returning a hollow result, and isn't billed. warnings are stored with the result, so cache hits and `result` fetches report them too, filtered to the outputs you asked for.
+the page body has no such code: if it can't be extracted the scrape fails outright rather than returning a hollow result, and isn't billed. warnings are stored with the result, so cache hits and `result` fetches report them too, filtered to the outputs you asked for. `metadata_truncated` is retired and no longer sent, though a result stored before that change can still carry it.
 
-and if you request an extract that doesn't apply to the content type (e.g. `markdown` of a pdf), the field name comes back in `unsupported_fields` with the rest of the payload still returned.
+and if you request an extract that doesn't apply to the content type (e.g. `elements` of a JSON, plain-text, XML or markdown page), the field name comes back in `unsupported_fields` with the rest of the payload still returned (text mode prints it as `# unsupported: elements`). a pdf or an image is refused with `unsupported_content` (HTTP 415).
 
 **extract toggles** — pick one or more; if any are given they replace the default.
 
@@ -181,7 +182,8 @@ most 20 slices — if your slice-height would produce more, the last slice carri
 of the capture rather than the run being cut short.
 
 in rare cases a screenshot can't be captured. if you requested other outputs too, you still get
-them and the response leaves out the `screenshot` field; a screenshot-only call errors with
+them, the response leaves out the `screenshot` field and carries the `screenshot_unavailable`
+warning; a screenshot-only call errors with
 `unsupported_screenshot_output` instead, and you're not charged for it.
 
 the screenshot url, and every slice url, is a signed link that expires 24 hours after the scrape
@@ -196,6 +198,47 @@ crawlbrulee scrape url https://x.com -ss full,1920,1080
 crawlbrulee scrape url https://x.com -ss full,1920,1080,mobile
 crawlbrulee scrape url https://x.com -ss full,1280,720,desktop,800   # sliced
 ```
+
+**read values by css selector (elements)**
+
+pull named values out of the page as clean json. it costs no extra credits. on their own,
+`--element` / `--elements` return only the elements (plus metadata unless `--no-metadata`); add
+`-m` or another content flag to get the page too. `--element name=selector` reads the text of
+the first match. it splits on the first `=`, so a selector can hold one too. give it once per
+value:
+
+```bash
+crawlbrulee scrape url https://books.toscrape.com/ --element heading=h1 --element 'price=.price_color'
+```
+
+`--elements <json>` takes the full form, the same object the api takes in `extract.elements`:
+read an attribute or the html, return every match as a list, or read `fields` inside each match.
+start the value with `@` to read the json from a file. both flags can be used together, as long as
+no name is given twice.
+
+```bash
+crawlbrulee scrape url https://books.toscrape.com/ --json --elements '{
+  "books": {
+    "selector": "article.product_pod",
+    "all": true,
+    "fields": {
+      "title": { "selector": "h3 a", "output": "attribute", "attribute": "title" },
+      "price": ".price_color"
+    }
+  }
+}' | jq .elements
+# { "books": [ { "title": "A Light in the Attic", "price": "£51.77" }, … ] }
+
+crawlbrulee scrape url https://books.toscrape.com/ --elements @elements.json
+```
+
+the values come back under `elements`, with the same names; a name with no match is `null` (`[]`
+for a list). in text mode they print as `elements: { … }`, after the page body if you asked for
+one. they work with `--async` and `--wait` too, and `scrape result` / `scrape wait` show them. if
+a limit was hit, the response carries the `elements_truncated` warning: a list is cut at 1,000
+matches, a value that didn't fit comes back `null` (a value is never cut short), or the request
+reached 10,000 matches in total. limits, selector rules and more examples:
+[elements](https://crawlbrulee.com/docs/scrape/elements).
 
 **other scrape flags:**
 
@@ -411,7 +454,7 @@ json fields: `organization_name`, `token_name`, `token_preview`. the token is sh
 ```bash
 crawlbrulee login                          # prompt for the key (input is hidden)
 crawlbrulee login --api-key cwbl_…         # non-interactive
-crawlbrulee login --api-url https://staging-api.crawlbrulee.com
+crawlbrulee login --api-url https://staging-api.example.com
 crawlbrulee logout                         # remove stored credentials
 crawlbrulee view-config                    # print the saved config (key masked)
 ```

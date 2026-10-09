@@ -8,6 +8,7 @@ import {
 } from '../output/render-scrape.js'
 import { resolveFormatMode } from '../output/tty.js'
 import { parseDurationSeconds } from '../parsers/duration.js'
+import { parseElementsFlags, type ElementsRequest } from '../parsers/elements.js'
 import { parseNonNegativeInt } from '../parsers/integers.js'
 import { parseProxy } from '../parsers/proxy.js'
 import { parseScreenshotFlag } from '../parsers/screenshot.js'
@@ -23,6 +24,10 @@ export interface ScrapeOptions extends CommonOptions {
   screenshot?: string | boolean
   all?: boolean
   metadata?: boolean // `--no-metadata` sets this to false
+  element?: string[] // repeatable `--element name=selector`
+  // `--elements <json>` or `--elements @file`. A list from the command line, so
+  // a second `--elements` is refused rather than replacing the first.
+  elements?: string | string[]
 
   proxy?: string
   requireJs?: boolean
@@ -67,6 +72,21 @@ page status:
   a real error, like target_unreachable when the site can't be reached,
   goes to stderr with exit code 1.`
 
+/** Commander collector for a flag that can be given more than once. */
+function collectRepeatable(value: string, previous: string[] | undefined): string[] {
+  return [...(previous ?? []), value]
+}
+
+/** Shown under `--help` for `scrape url`: where the elements rules live. */
+const ELEMENTS_HELP = `
+elements:
+  --element heading=h1 reads the text of the first <h1> into elements.heading.
+  --elements takes the full form (attributes, html, every match, fields per
+  match). both can be combined. on their own they return only the elements
+  (plus metadata unless --no-metadata); add -m or another content flag to get
+  the page too. rules and examples:
+  https://crawlbrulee.com/docs/scrape/elements`
+
 function addWaitOptions(cmd: Command): Command {
   return cmd
     .option('--interval <seconds>', 'seconds between status polls while waiting (default 2)')
@@ -102,6 +122,16 @@ function registerScrapeUrlCommand(scrape: Command): void {
     )
     .option('--all', 'extract every content type at once')
     .option('--no-metadata', 'omit page metadata from the response')
+    .option(
+      '--element <name=selector>',
+      'read the text of the first match of a CSS selector into elements.<name> (repeatable)',
+      collectRepeatable
+    )
+    .option(
+      '--elements <json>',
+      'the full elements object as JSON, or @file to read it from a file',
+      collectRepeatable
+    )
 
     .option(
       '--proxy <tier>',
@@ -147,7 +177,7 @@ function registerScrapeUrlCommand(scrape: Command): void {
 
   addWaitOptions(cmd)
   addFormatOptions(cmd)
-    .addHelpText('after', PAGE_STATUS_HELP)
+    .addHelpText('after', ELEMENTS_HELP + '\n' + PAGE_STATUS_HELP)
     .action(withErrorHandler(runScrapeUrl))
 }
 
@@ -292,10 +322,13 @@ function emitWaitNote(
 export function buildScrapeRequest(url: string, opts: ScrapeOptions): ScrapeRequest {
   // `--all` turns on every extract flag (full_page screenshot unless `-ss`
   // overrides it). Otherwise flags are opt-in; with nothing picked we default
-  // to markdown.
+  // to markdown, or to elements only when an element flag is given.
   const wantAll = opts.all === true
 
-  const extract: NonNullable<ScrapeRequest['extract']> = { metadata: opts.metadata !== false }
+  // `elements` is typed locally until @crawlbrulee/sdk 1.3.0 is on npm.
+  const extract: NonNullable<ScrapeRequest['extract']> & { elements?: ElementsRequest } = {
+    metadata: opts.metadata !== false,
+  }
   if (wantAll || opts.markdown) extract.markdown = true
   if (wantAll || opts.cleanedHtml) extract.cleaned_html = true
   if (wantAll || opts.rawHtml) extract.raw_html = true
@@ -314,7 +347,19 @@ export function buildScrapeRequest(url: string, opts: ScrapeOptions): ScrapeRequ
     extract.links ||
     extract.images ||
     extract.screenshot !== undefined
-  if (!pickedAny) extract.markdown = true
+  const elements = parseElementsFlags(opts.element, opts.elements)
+  if (elements !== undefined) {
+    extract.elements = elements
+    // On their own, elements return only the elements (plus metadata). The api
+    // turns cleaned_html on by default, so switch it off along with markdown.
+    // With a content flag, elements come on top of that content.
+    if (!pickedAny) {
+      extract.markdown = false
+      extract.cleaned_html = false
+    }
+  } else if (!pickedAny) {
+    extract.markdown = true
+  }
 
   const body: ScrapeRequest = { url, extract }
 

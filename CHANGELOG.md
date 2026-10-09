@@ -4,6 +4,23 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+## 5.3.0 (2026-10-09)
+
+### added
+
+- **read values by css selector.** `--element name=selector` (repeatable) reads the text of the first match. `--elements <json>` takes the full `extract.elements` object, or `@file` to read it from a file. they work on `scrape url`, also with `--async` and `--wait`. no extra credits.
+- on their own, `--element` / `--elements` return only the elements (plus metadata unless `--no-metadata`); add `-m` or another content flag to get the page too.
+- json output passes the new `elements` field through. text mode prints it as `elements: { … }`, after the page body if you asked for one, and the `elements_truncated` warning as `# warning: elements_truncated`.
+- `--elements` is refused when given twice, or when its object is empty. a bad json value names the parse error.
+- see [elements](https://crawlbrulee.com/docs/scrape/elements) for the rules and more examples.
+- text mode prints `unsupported_fields` as `# unsupported: <fields>`, so an output the page can't have (like `elements` of an XML feed) no longer goes missing without a reason.
+
+### changed
+
+- the readme lists the `screenshot_unavailable` warning: a screenshot was asked for, but the page came back from the `http` engine without one.
+- the readme drops `metadata_truncated` and its size limit: the code is retired and no longer sent.
+- the readme no longer says a pdf lands in `unsupported_fields`: a pdf or an image is refused with `unsupported_content` (HTTP 415).
+
 ## 5.2.1 (2026-10-07)
 
 ### changed

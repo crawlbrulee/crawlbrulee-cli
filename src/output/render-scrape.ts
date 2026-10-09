@@ -20,6 +20,11 @@ export function renderJobStatusText(res: AsyncJobStatusResponse): string {
   return lines.join('\n')
 }
 
+/** Start a new block: one blank line after earlier output, never two. */
+function pushGap(lines: string[]): void {
+  if (lines.length > 0 && lines[lines.length - 1] !== '') lines.push('')
+}
+
 export function renderScrapeText(res: ScrapeResponse): string {
   const lines: string[] = []
 
@@ -37,7 +42,7 @@ export function renderScrapeText(res: ScrapeResponse): string {
   }
 
   if (res.screenshot) {
-    if (lines.length > 0) lines.push('')
+    pushGap(lines)
     if (res.screenshot.slices && res.screenshot.slices.length > 0) {
       lines.push(`screenshot: ${res.screenshot.url} (${res.screenshot.slices.length} slices)`)
       for (const s of res.screenshot.slices) {
@@ -66,13 +71,27 @@ export function renderScrapeText(res: ScrapeResponse): string {
     }
   }
 
+  // `elements` is typed locally until @crawlbrulee/sdk 1.3.0 is on npm.
+  const elements = (res as ScrapeResponse & { elements?: Record<string, unknown> }).elements
+  if (elements) {
+    pushGap(lines)
+    lines.push(`elements: ${JSON.stringify(elements, null, 2)}`)
+  }
+
   if (lines.length === 0) {
     lines.push(`(no body returned for ${res.url})`)
   }
 
-  if (res.warnings && res.warnings.length > 0) {
-    lines.push('')
-    for (const w of res.warnings) {
+  const unsupported = res.unsupported_fields ?? []
+  const warnings = res.warnings ?? []
+  if (unsupported.length > 0 || warnings.length > 0) {
+    pushGap(lines)
+    // Outputs asked for that this kind of page doesn't have (e.g. `elements`
+    // of an XML page): say so, or a missing output has no reason.
+    if (unsupported.length > 0) {
+      lines.push(`# unsupported: ${unsupported.join(', ')}`)
+    }
+    for (const w of warnings) {
       lines.push(`# warning: ${w}`)
     }
   }
@@ -81,7 +100,7 @@ export function renderScrapeText(res: ScrapeResponse): string {
   // successful scrape: it prints like any page, and the footer names the status.
   const footer = scrapeFooterLine(res)
   if (footer) {
-    lines.push('')
+    pushGap(lines)
     lines.push(footer)
   }
 
