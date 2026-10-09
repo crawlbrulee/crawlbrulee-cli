@@ -8,7 +8,7 @@ import {
 } from '../output/render-scrape.js'
 import { resolveFormatMode } from '../output/tty.js'
 import { parseDurationSeconds } from '../parsers/duration.js'
-import { parseElementsFlags, type ElementsRequest } from '../parsers/elements.js'
+import { parseElementsFlags } from '../parsers/elements.js'
 import { parseNonNegativeInt } from '../parsers/integers.js'
 import { parseProxy } from '../parsers/proxy.js'
 import { parseScreenshotFlag } from '../parsers/screenshot.js'
@@ -325,8 +325,7 @@ export function buildScrapeRequest(url: string, opts: ScrapeOptions): ScrapeRequ
   // to markdown, or to elements only when an element flag is given.
   const wantAll = opts.all === true
 
-  // `elements` is typed locally until @crawlbrulee/sdk 1.3.0 is on npm.
-  const extract: NonNullable<ScrapeRequest['extract']> & { elements?: ElementsRequest } = {
+  const extract: NonNullable<ScrapeRequest['extract']> = {
     metadata: opts.metadata !== false,
   }
   if (wantAll || opts.markdown) extract.markdown = true

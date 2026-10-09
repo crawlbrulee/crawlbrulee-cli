@@ -71,11 +71,9 @@ export function renderScrapeText(res: ScrapeResponse): string {
     }
   }
 
-  // `elements` is typed locally until @crawlbrulee/sdk 1.3.0 is on npm.
-  const elements = (res as ScrapeResponse & { elements?: Record<string, unknown> }).elements
-  if (elements) {
+  if (res.elements) {
     pushGap(lines)
-    lines.push(`elements: ${JSON.stringify(elements, null, 2)}`)
+    lines.push(`elements: ${JSON.stringify(res.elements, null, 2)}`)
   }
 
   if (lines.length === 0) {

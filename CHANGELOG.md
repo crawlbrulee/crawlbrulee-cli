@@ -20,6 +20,7 @@ this project follows [Semantic Versioning](https://semver.org). breaking changes
 - the readme lists the `screenshot_unavailable` warning: a screenshot was asked for, but the page came back from the `http` engine without one.
 - the readme drops `metadata_truncated` and its size limit: the code is retired and no longer sent.
 - the readme no longer says a pdf lands in `unsupported_fields`: a pdf or an image is refused with `unsupported_content` (HTTP 415).
+- needs `@crawlbrulee/sdk` 1.3.0 or later, which types `extract.elements` and the `elements` field.
 
 ## 5.2.1 (2026-10-07)
 

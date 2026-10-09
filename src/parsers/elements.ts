@@ -1,22 +1,5 @@
+import type { ScrapeElements } from '@crawlbrulee/sdk'
 import { readFileSync } from 'fs'
-
-/**
- * One value to read from the page: a selector string (the text of the first
- * match) or the full object form. Typed here until `@crawlbrulee/sdk` 1.3.0,
- * which types `extract.elements`, is on npm.
- */
-export type ElementSpec =
-  | string
-  | {
-      selector: string
-      output?: 'text' | 'html' | 'attribute'
-      attribute?: string
-      all?: boolean
-      fields?: Record<string, ElementSpec>
-    }
-
-/** `extract.elements`: a name you pick → what to read for it. */
-export type ElementsRequest = Record<string, ElementSpec>
 
 /**
  * Merge the repeatable `--element name=selector` shorthand and the
@@ -29,7 +12,7 @@ export type ElementsRequest = Record<string, ElementSpec>
 export function parseElementsFlags(
   element: string[] | undefined,
   elements: string | string[] | undefined
-): ElementsRequest | undefined {
+): ScrapeElements | undefined {
   const elementsList = elements === undefined ? [] : Array.isArray(elements) ? elements : [elements]
   if ((element === undefined || element.length === 0) && elementsList.length === 0) {
     return undefined
@@ -40,7 +23,7 @@ export function parseElementsFlags(
 
   // No prototype, so any name — `__proto__` too — becomes a real key that
   // JSON.stringify sends on.
-  const out = Object.create(null) as ElementsRequest
+  const out = Object.create(null) as ScrapeElements
   if (elementsList[0] !== undefined) {
     for (const [name, spec] of Object.entries(parseElementsJson(elementsList[0]))) {
       out[name] = spec
@@ -76,7 +59,7 @@ function parseElementShorthand(raw: string): [string, string] {
 }
 
 /** Parse `--elements`: inline JSON, or `@path` to read the JSON from a file. */
-function parseElementsJson(raw: string): ElementsRequest {
+function parseElementsJson(raw: string): ScrapeElements {
   // Name a file by its `@path`; inline JSON can be long, so the label just
   // says `--elements`.
   const label = raw.startsWith('@') ? `--elements '${raw}'` : '--elements'
@@ -112,7 +95,7 @@ function parseElementsJson(raw: string): ElementsRequest {
   }
   // Deeper checks (selectors, output, fields) are left to the api, which
   // answers a bad spec with a clear 400.
-  return parsed as ElementsRequest
+  return parsed as ScrapeElements
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
