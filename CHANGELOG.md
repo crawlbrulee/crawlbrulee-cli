@@ -4,6 +4,12 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+## 5.3.1 (2026-10-09)
+
+### changed
+
+- **docs only.** the readme and the `--cleaned-html` help text say what cleanup removes: scripts, styles, ads, popups and cookie banners. the menu and the footer stay unless you exclude them with css selectors. before, they said the menu and the footer were removed too. no other changes.
+
 ## 5.3.0 (2026-10-09)
 
 ### added
