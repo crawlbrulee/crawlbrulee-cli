@@ -110,7 +110,10 @@ function registerScrapeUrlCommand(scrape: Command): void {
 
   addAuthOptions(cmd)
     .option('-m, --markdown', 'extract markdown')
-    .option('-c, --cleaned-html', 'extract cleaned HTML (main content)')
+    .option(
+      '-c, --cleaned-html',
+      'extract cleaned HTML (scripts, styles, ads and cookie banners removed)'
+    )
     .option('-r, --raw-html', 'extract raw HTML')
     .option('-l, --links', 'extract links')
     .option('-i, --images', 'extract inline images')
