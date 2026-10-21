@@ -4,3 +4,8 @@
 # brand-new releases. Read from here, not .npmrc (pnpm 10 ignores the
 # camelCase key there).
 minimumReleaseAge: 10080
+
+# Our own packages skip the wait, so a new @crawlbrulee/sdk can be used the
+# day it ships. Only we can publish to the @crawlbrulee scope on npm.
+minimumReleaseAgeExclude:
+  - '@crawlbrulee/*'
