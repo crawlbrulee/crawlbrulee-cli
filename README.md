@@ -133,6 +133,8 @@ a second family reports a section whose extraction failed outright — the field
 | `metadata_unavailable`      | metadata extraction failed — `metadata` is omitted or empty.                                                     |
 | `screenshot_unavailable`    | a screenshot was asked for, but the page came back from the `http` engine without one — `screenshot` is omitted. |
 
+one more code, `custom_user_agent`, means the request set its own `User-Agent` header (with `--header` or `--headers`); this can lower the success rate.
+
 the page body has no such code: if it can't be extracted the scrape fails outright rather than returning a hollow result, and isn't billed. warnings are stored with the result, so cache hits and `result` fetches report them too, filtered to the outputs you asked for. `metadata_truncated` is retired and no longer sent, though a result stored before that change can still carry it.
 
 and if you request an extract that doesn't apply to the content type (e.g. `elements` of a JSON, plain-text, XML or markdown page), the field name comes back in `unsupported_fields` with the rest of the payload still returned (text mode prints it as `# unsupported: elements`). a pdf or an image is refused with `unsupported_content` (HTTP 415).
@@ -238,7 +240,54 @@ one. they work with `--async` and `--wait` too, and `scrape result` / `scrape wa
 a limit was hit, the response carries the `elements_truncated` warning: a list is cut at 1,000
 matches, a value that didn't fit comes back `null` (a value is never cut short), or the request
 reached 10,000 matches in total. limits, selector rules and more examples:
-[elements](https://crawlbrulee.com/docs/scrape/elements).
+[targeted extraction](https://crawlbrulee.com/docs/scrape/targeted-extraction).
+
+**your own headers and cookies**
+
+send your own http headers and cookies to the site, for example an `Authorization` header or a
+fixed `User-Agent` that a site has on its allowlist.
+
+```
+--header "Name: value"               send a header (repeatable); splits on the first colon
+--cookie name=value                  send a cookie (repeatable); splits on the first =
+--headers <json|@file>               every header as one json object of name to value
+--cookies <json|@file>               every cookie as a json array of {"name", "value"}
+```
+
+```bash
+crawlbrulee scrape url https://app.example.com/orders \
+  --header "Authorization: Bearer $APP_TOKEN" \
+  --header "X-Tenant-Id: acme" \
+  --cookie "session_id=$APP_SESSION"
+```
+
+**keep secrets out of your shell history.** a value typed on the command line is saved in
+your shell history, and other users of the machine can see it in the process list (`ps`), even
+when it comes from an environment variable. put it in a file and pass `@file` instead:
+
+```bash
+# headers.json: { "Authorization": "Bearer …", "X-Tenant-Id": "acme" }
+# cookies.json: [ { "name": "session_id", "value": "…" } ]
+crawlbrulee scrape url https://app.example.com/orders --headers @headers.json --cookies @cookies.json
+```
+
+- use one form per field: `--header` or `--headers`, `--cookie` or `--cookies`, not both.
+  a malformed flag, or a header name given twice, fails with a clear error before any
+  request is sent. the values themselves are checked by the api.
+- headers are sent only to the origin of the url (same scheme, host and port), or to its
+  `https://` version when the url is plain `http://`, and not on a redirect to another origin. cookies are sent only to the host of the url.
+- **a request with headers or cookies is never cached.** it never reads from or writes to the
+  cache, and costs the same as any fresh scrape. on a plain `http://` url they travel
+  unencrypted.
+- some headers can't be set, for example `Cookie` (use `--cookie`) or `Accept-Language` (use
+  `--locale`). the api answers with `validation_error` (HTTP 400), and the message names the
+  header.
+- your own `User-Agent` can lower the success rate, and the response then carries the
+  `custom_user_agent` warning. never put secrets in the `User-Agent`.
+- the cli never prints a header or cookie value, in errors or anywhere else.
+- they work with `--async` and `--wait` too, but not on `map`.
+
+limits and the full rules: [headers and cookies](https://crawlbrulee.com/docs/scrape/custom-headers-and-cookies).
 
 **other scrape flags:**
 
@@ -248,7 +297,7 @@ reached 10,000 matches in total. limits, selector rules and more examples:
 --exclude-selectors "nav,footer"     CSS selectors stripped from the result
 --cache-max-age 86400                cache cutoff in seconds
 --zero-data-retention                keep the result out of the shared cache (+1 credit; must be enabled for your organization)
---locale en-US                       BCP-47 locale (Accept-Language + navigator.language)
+--locale en-US                       BCP-47 locale: the language to ask the site for
 --country US                         ISO 3166-1 alpha-2 country code (eu / europe also accepted)
 -o, --output <file>                  write to a file instead of stdout
 ```

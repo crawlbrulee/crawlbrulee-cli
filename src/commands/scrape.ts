@@ -9,6 +9,11 @@ import {
 import { resolveFormatMode } from '../output/tty.js'
 import { parseDurationSeconds } from '../parsers/duration.js'
 import { parseElementsFlags } from '../parsers/elements.js'
+import {
+  parseCookiesFlags,
+  parseHeadersFlags,
+  type ScrapeCookieInput,
+} from '../parsers/headers-cookies.js'
 import { parseNonNegativeInt } from '../parsers/integers.js'
 import { parseProxy } from '../parsers/proxy.js'
 import { parseScreenshotFlag } from '../parsers/screenshot.js'
@@ -29,6 +34,13 @@ export interface ScrapeOptions extends CommonOptions {
   // a second `--elements` is refused rather than replacing the first.
   elements?: string | string[]
 
+  header?: string[] // repeatable `--header "Name: value"`
+  cookie?: string[] // repeatable `--cookie name=value`
+  // `--headers` / `--cookies <json|@file>`: lists, like `--elements`, so a
+  // second one is refused rather than replacing the first.
+  headers?: string | string[]
+  cookies?: string | string[]
+
   proxy?: string
   requireJs?: boolean
   excludeSelectors?: string
@@ -47,6 +59,17 @@ export interface ScrapeOptions extends CommonOptions {
   interval?: string
   timeout?: string
 }
+
+/**
+ * The request fields the sdk floor (1.3) does not type yet. Remove after
+ * `@crawlbrulee/sdk` 1.4.0, which types `headers` and `cookies` itself.
+ */
+interface HeadersAndCookies {
+  headers?: Record<string, string>
+  cookies?: ScrapeCookieInput[]
+}
+export type CliScrapeRequest = ScrapeRequest & HeadersAndCookies
+export type CliAsyncScrapeRequest = AsyncScrapeRequest & HeadersAndCookies
 
 /** Polling knobs shared by `scrape wait` and `scrape url --async --wait`. */
 export interface WaitOptions extends CommonOptions {
@@ -85,7 +108,21 @@ elements:
   match). both can be combined. on their own they return only the elements
   (plus metadata unless --no-metadata); add -m or another content flag to get
   the page too. rules and examples:
-  https://crawlbrulee.com/docs/scrape/elements`
+  https://crawlbrulee.com/docs/scrape/targeted-extraction`
+
+/** Shown under `--help` for `scrape url`: headers and cookies. */
+const HEADERS_HELP = `
+headers and cookies:
+  send your own http headers and cookies to the site, for example an
+  Authorization header or a fixed User-Agent that a site has on its
+  allowlist. --header and --cookie can be given more than once; --headers
+  and --cookies take the same as JSON, or @file to read it from a file,
+  which keeps secrets out of your shell history and the process list. use
+  one form per field, not both. headers go only to the origin of the url
+  (or its https version, for an http url), cookies only to its host. a
+  request with either is never cached. the cli never prints their values.
+  details:
+  https://crawlbrulee.com/docs/scrape/custom-headers-and-cookies`
 
 function addWaitOptions(cmd: Command): Command {
   return cmd
@@ -135,6 +172,22 @@ function registerScrapeUrlCommand(scrape: Command): void {
       'the full elements object as JSON, or @file to read it from a file',
       collectRepeatable
     )
+    .option(
+      '--header <"Name: value">',
+      'send an HTTP header to the site, e.g. "Authorization: Bearer …" (repeatable)',
+      collectRepeatable
+    )
+    .option(
+      '--headers <json>',
+      'every header as one JSON object, or @file to read it from a file',
+      collectRepeatable
+    )
+    .option('--cookie <name=value>', 'send a cookie to the site (repeatable)', collectRepeatable)
+    .option(
+      '--cookies <json>',
+      'every cookie as a JSON array of {"name", "value"}, or @file to read it from a file',
+      collectRepeatable
+    )
 
     .option(
       '--proxy <tier>',
@@ -180,7 +233,7 @@ function registerScrapeUrlCommand(scrape: Command): void {
 
   addWaitOptions(cmd)
   addFormatOptions(cmd)
-    .addHelpText('after', ELEMENTS_HELP + '\n' + PAGE_STATUS_HELP)
+    .addHelpText('after', ELEMENTS_HELP + '\n' + HEADERS_HELP + '\n' + PAGE_STATUS_HELP)
     .action(withErrorHandler(runScrapeUrl))
 }
 
@@ -322,7 +375,7 @@ function emitWaitNote(
   )
 }
 
-export function buildScrapeRequest(url: string, opts: ScrapeOptions): ScrapeRequest {
+export function buildScrapeRequest(url: string, opts: ScrapeOptions): CliScrapeRequest {
   // `--all` turns on every extract flag (full_page screenshot unless `-ss`
   // overrides it). Otherwise flags are opt-in; with nothing picked we default
   // to markdown, or to elements only when an element flag is given.
@@ -363,7 +416,12 @@ export function buildScrapeRequest(url: string, opts: ScrapeOptions): ScrapeRequ
     extract.markdown = true
   }
 
-  const body: ScrapeRequest = { url, extract }
+  const body: CliScrapeRequest = { url, extract }
+
+  const headers = parseHeadersFlags(opts.header, opts.headers)
+  if (headers !== undefined) body.headers = headers
+  const cookies = parseCookiesFlags(opts.cookie, opts.cookies)
+  if (cookies !== undefined) body.cookies = cookies
 
   if (opts.proxy) body.proxy = parseProxy(opts.proxy)
   if (opts.requireJs) body.require_js = true
@@ -394,13 +452,13 @@ export function buildScrapeRequest(url: string, opts: ScrapeOptions): ScrapeRequ
   return body
 }
 
-export function buildAsyncScrapeRequest(url: string, opts: ScrapeOptions): AsyncScrapeRequest {
+export function buildAsyncScrapeRequest(url: string, opts: ScrapeOptions): CliAsyncScrapeRequest {
   // --webhook-metadata only makes sense alongside a webhook URL.
   if (opts.webhookMetadata !== undefined && opts.webhookUrl === undefined) {
     throw new Error('--webhook-metadata requires --webhook-url')
   }
 
-  const body: AsyncScrapeRequest = buildScrapeRequest(url, opts)
+  const body: CliAsyncScrapeRequest = buildScrapeRequest(url, opts)
 
   if (opts.webhookUrl !== undefined) {
     const webhook: AsyncScrapeWebhook = { url: opts.webhookUrl }

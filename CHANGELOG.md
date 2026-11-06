@@ -4,6 +4,18 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+## 5.4.0 (unreleased)
+
+### added
+
+- **your own headers and cookies.** `--header "Name: value"` and `--cookie name=value` send your own http headers and cookies to the site, for example an `Authorization` header or a fixed `User-Agent` that a site has on its allowlist. both can be given more than once. `--header` splits on the first colon and `--cookie` on the first `=`, so a value can hold one too. they work on `scrape url`, also with `--async` and `--wait`.
+- `--headers <json>` and `--cookies <json>` take the same as the api does (an object of header name to value; an array of `{"name", "value"}`), or `@file` to read it from a file, which keeps secrets out of your shell history.
+- use one form per field: `--header` with `--headers`, or `--cookie` with `--cookies`, is refused. a malformed flag, a header name given twice, or a second `--headers` / `--cookies` is refused before any request is sent; the values themselves are checked by the api. the cli never prints a header or cookie value, in errors or anywhere else, not even for an unknown `--flag=value`.
+- headers go only to the origin of the url (or its `https://` version, for a plain `http://` url), cookies only to its host. a request with either is never read from or written to the cache, and costs the same as any fresh scrape.
+- the api refuses some headers with a `validation_error` (HTTP 400) that names the header; the cli prints it like any other error.
+- the readme lists the new `custom_user_agent` warning: your own `User-Agent` can lower the success rate. text mode prints it as `# warning: custom_user_agent`.
+- see [headers and cookies](https://crawlbrulee.com/docs/scrape/custom-headers-and-cookies) for the rules and limits.
+
 ## 5.3.1 (2026-10-09)
 
 ### changed

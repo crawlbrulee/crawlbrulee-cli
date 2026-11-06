@@ -5,6 +5,7 @@ import { registerMapCommand } from './commands/map.js'
 import { registerScrapeCommand } from './commands/scrape.js'
 import { registerUsageCommand } from './commands/usage.js'
 import { registerWhoamiCommand } from './commands/whoami.js'
+import { hideUnknownOptionValue } from './output/unknown-option.js'
 import { CLI_VERSION } from './version.js'
 
 const program = new Command()
@@ -12,6 +13,8 @@ program
   .name('crawlbrulee')
   .description('CLI for the crawlbrulee API — scrape and map URLs from your terminal.')
   .version(CLI_VERSION, '-V, --version', 'output the version')
+  // Every subcommand shares this, so no unknown `--flag=value` prints its value.
+  .configureOutput({ outputError: (str, write) => write(hideUnknownOptionValue(str)) })
 
 registerAuthCommands(program)
 registerScrapeCommand(program)
