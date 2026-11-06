@@ -15,6 +15,7 @@ this project follows [Semantic Versioning](https://semver.org). breaking changes
 - the api refuses some headers with a `validation_error` (HTTP 400) that names the header; the cli prints it like any other error.
 - the readme lists the new `custom_user_agent` warning: your own `User-Agent` can lower the success rate. text mode prints it as `# warning: custom_user_agent`.
 - see [headers and cookies](https://crawlbrulee.com/docs/scrape/custom-headers-and-cookies) for the rules and limits.
+- the readme says that the selector `:scope` in `fields` reads the match itself, for example the matched element's own `href`.
 
 ## 5.3.1 (2026-10-09)
 

@@ -214,7 +214,7 @@ crawlbrulee scrape url https://books.toscrape.com/ --element heading=h1 --elemen
 ```
 
 `--elements <json>` takes the full form, the same object the api takes in `extract.elements`:
-read an attribute or the html, return every match as a list, or read `fields` inside each match.
+read an attribute or the html, return every match as a list, or read `fields` inside each match (`:scope` reads the match itself).
 start the value with `@` to read the json from a file. both flags can be used together, as long as
 no name is given twice.
 
