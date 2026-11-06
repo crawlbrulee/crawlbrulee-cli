@@ -4,7 +4,7 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
-## 5.4.0 (unreleased)
+## 5.4.0 (2026-11-06)
 
 ### added
 
