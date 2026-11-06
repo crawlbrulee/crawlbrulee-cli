@@ -20,11 +20,11 @@ const AUTH = { apiKey: 'cwbl_test_key', apiUrl: 'https://staging-api.example.com
 
 const BOOKS = {
   books: {
-    selector: 'article.product_pod',
+    selector: 'article.book',
     all: true,
     fields: {
       title: { selector: 'h3 a', output: 'attribute', attribute: 'title' },
-      price: '.price_color',
+      price: '.price',
     },
   },
 }
@@ -36,9 +36,9 @@ describe('parseElementsFlags — --element name=selector', () => {
   })
 
   it('turns each --element into a name → selector string', () => {
-    expect(parseElementsFlags(['heading=h1', 'price=.price_color'], undefined)).toEqual({
+    expect(parseElementsFlags(['heading=h1', 'price=.price'], undefined)).toEqual({
       heading: 'h1',
-      price: '.price_color',
+      price: '.price',
     })
   })
 
@@ -257,8 +257,8 @@ describe('buildScrapeRequest — elements', () => {
 
 describe('renderScrapeText — elements', () => {
   const base: ScrapeResponse = {
-    url: 'https://books.toscrape.com/',
-    requested_url: 'https://books.toscrape.com/',
+    url: 'https://shop.example.com/books/',
+    requested_url: 'https://shop.example.com/books/',
     markdown: 'body',
     response_meta: {
       usage: {
@@ -275,13 +275,13 @@ describe('renderScrapeText — elements', () => {
     const out = renderScrapeText({
       ...base,
       elements: {
-        heading: 'All products',
-        books: [{ title: 'A Light in the Attic', price: '£51.77' }],
+        heading: 'Books',
+        books: [{ title: 'The Night Garden', price: '€18.90' }],
         next_page: null,
       },
     } as ScrapeResponse)
-    expect(out).toContain('body\n\nelements: {\n  "heading": "All products",')
-    expect(out).toContain('"title": "A Light in the Attic"')
+    expect(out).toContain('body\n\nelements: {\n  "heading": "Books",')
+    expect(out).toContain('"title": "The Night Garden"')
     expect(out).toContain('"next_page": null')
   })
 
@@ -289,9 +289,9 @@ describe('renderScrapeText — elements', () => {
     const { markdown: _markdown, ...noBody } = base
     const out = renderScrapeText({
       ...noBody,
-      elements: { heading: 'All products' },
+      elements: { heading: 'Books' },
     } as ScrapeResponse)
-    expect(out).toMatch(/^elements: \{\n {2}"heading": "All products"\n\}/)
+    expect(out).toMatch(/^elements: \{\n {2}"heading": "Books"\n\}/)
     expect(out).not.toContain('no body returned')
   })
 
@@ -303,20 +303,20 @@ describe('renderScrapeText — elements', () => {
     const { markdown: _markdown, ...noBody } = base
     const out = renderScrapeText({
       ...noBody,
-      metadata: { title: 'All products' },
-      elements: { heading: 'All products' },
+      metadata: { title: 'Books' },
+      elements: { heading: 'Books' },
     } as ScrapeResponse)
-    expect(out).toMatch(/^## All products\n\nelements: \{/)
+    expect(out).toMatch(/^## Books\n\nelements: \{/)
   })
 
   it('keeps one blank line between the title and a screenshot when there is no body', () => {
     const { markdown: _markdown, ...noBody } = base
     const out = renderScrapeText({
       ...noBody,
-      metadata: { title: 'All products' },
+      metadata: { title: 'Books' },
       screenshot: { url: 'https://cdn/x.png' },
     } as ScrapeResponse)
-    expect(out).toMatch(/^## All products\n\nscreenshot: https:\/\/cdn\/x\.png\n\n/)
+    expect(out).toMatch(/^## Books\n\nscreenshot: https:\/\/cdn\/x\.png\n\n/)
   })
 
   it('says which outputs the page does not support', () => {
@@ -377,9 +377,9 @@ describe('elements end to end (via mocked fetch)', () => {
 
   it('sends extract.elements to /api/scrape and passes elements through in json', async () => {
     const result = {
-      url: 'https://books.toscrape.com/',
-      requested_url: 'https://books.toscrape.com/',
-      elements: { heading: 'All products', next_page: null },
+      url: 'https://shop.example.com/books/',
+      requested_url: 'https://shop.example.com/books/',
+      elements: { heading: 'Books', next_page: null },
     }
     const fetchMock = vi.fn(
       async () => new Response(JSON.stringify(result), { status: 200, headers: JSON_HEADERS })
@@ -387,7 +387,7 @@ describe('elements end to end (via mocked fetch)', () => {
     vi.stubGlobal('fetch', fetchMock)
     const writeSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
 
-    await runScrapeUrl('https://books.toscrape.com/', {
+    await runScrapeUrl('https://shop.example.com/books/', {
       ...AUTH,
       element: ['heading=h1'],
       elements:
@@ -398,7 +398,7 @@ describe('elements end to end (via mocked fetch)', () => {
     const [calledUrl, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
     expect(calledUrl).toBe('https://staging-api.example.com/api/scrape')
     expect(JSON.parse(init.body as string)).toEqual({
-      url: 'https://books.toscrape.com/',
+      url: 'https://shop.example.com/books/',
       extract: {
         metadata: true,
         markdown: false,
@@ -421,7 +421,7 @@ describe('elements end to end (via mocked fetch)', () => {
     vi.stubGlobal('fetch', fetchMock)
     vi.spyOn(process.stdout, 'write').mockReturnValue(true)
 
-    await runScrapeUrl('https://books.toscrape.com/', {
+    await runScrapeUrl('https://shop.example.com/books/', {
       ...AUTH,
       async: true,
       element: ['heading=h1'],
@@ -437,7 +437,7 @@ describe('elements end to end (via mocked fetch)', () => {
   it('sends a __proto__ name in the request body', async () => {
     const fetchMock = vi.fn(
       async () =>
-        new Response(JSON.stringify({ url: 'https://books.toscrape.com/', elements: {} }), {
+        new Response(JSON.stringify({ url: 'https://shop.example.com/books/', elements: {} }), {
           status: 200,
           headers: JSON_HEADERS,
         })
@@ -445,7 +445,7 @@ describe('elements end to end (via mocked fetch)', () => {
     vi.stubGlobal('fetch', fetchMock)
     vi.spyOn(process.stdout, 'write').mockReturnValue(true)
 
-    await runScrapeUrl('https://books.toscrape.com/', {
+    await runScrapeUrl('https://shop.example.com/books/', {
       ...AUTH,
       element: ['__proto__=h1'],
       json: true,
@@ -470,7 +470,7 @@ describe('elements end to end (via mocked fetch)', () => {
         [
           'scrape',
           'url',
-          'https://books.toscrape.com/',
+          'https://shop.example.com/books/',
           '--api-key',
           AUTH.apiKey,
           '--api-url',
@@ -494,7 +494,7 @@ describe('elements end to end (via mocked fetch)', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     await expect(
-      runScrapeUrl('https://books.toscrape.com/', { ...AUTH, element: ['h1'] })
+      runScrapeUrl('https://shop.example.com/books/', { ...AUTH, element: ['h1'] })
     ).rejects.toThrow(/invalid --element/)
     expect(fetchMock).not.toHaveBeenCalled()
   })
@@ -504,10 +504,10 @@ describe('elements end to end (via mocked fetch)', () => {
       async () =>
         new Response(
           JSON.stringify({
-            url: 'https://books.toscrape.com/',
-            requested_url: 'https://books.toscrape.com/',
+            url: 'https://shop.example.com/books/',
+            requested_url: 'https://shop.example.com/books/',
             markdown: '# books',
-            elements: { heading: 'All products' },
+            elements: { heading: 'Books' },
           }),
           { status: 200, headers: JSON_HEADERS }
         )
@@ -518,6 +518,6 @@ describe('elements end to end (via mocked fetch)', () => {
     await runScrapeResult('job_el', { ...AUTH, text: true })
 
     const out = writeSpy.mock.calls.map(c => String(c[0])).join('')
-    expect(out).toContain('elements: {\n  "heading": "All products"\n}')
+    expect(out).toContain('elements: {\n  "heading": "Books"\n}')
   })
 })

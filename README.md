@@ -210,7 +210,7 @@ the first match. it splits on the first `=`, so a selector can hold one too. giv
 value:
 
 ```bash
-crawlbrulee scrape url https://books.toscrape.com/ --element heading=h1 --element 'price=.price_color'
+crawlbrulee scrape url https://shop.example.com/books/ --element heading=h1 --element 'price=.price'
 ```
 
 `--elements <json>` takes the full form, the same object the api takes in `extract.elements`:
@@ -219,19 +219,19 @@ start the value with `@` to read the json from a file. both flags can be used to
 no name is given twice.
 
 ```bash
-crawlbrulee scrape url https://books.toscrape.com/ --json --elements '{
+crawlbrulee scrape url https://shop.example.com/books/ --json --elements '{
   "books": {
-    "selector": "article.product_pod",
+    "selector": "article.book",
     "all": true,
     "fields": {
       "title": { "selector": "h3 a", "output": "attribute", "attribute": "title" },
-      "price": ".price_color"
+      "price": ".price"
     }
   }
 }' | jq .elements
-# { "books": [ { "title": "A Light in the Attic", "price": "£51.77" }, … ] }
+# { "books": [ { "title": "The Night Garden", "price": "€18.90" }, … ] }
 
-crawlbrulee scrape url https://books.toscrape.com/ --elements @elements.json
+crawlbrulee scrape url https://shop.example.com/books/ --elements @elements.json
 ```
 
 the values come back under `elements`, with the same names; a name with no match is `null` (`[]`

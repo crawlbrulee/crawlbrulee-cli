@@ -17,6 +17,11 @@ this project follows [Semantic Versioning](https://semver.org). breaking changes
 - see [headers and cookies](https://crawlbrulee.com/docs/scrape/custom-headers-and-cookies) for the rules and limits.
 - the readme says that the selector `:scope` in `fields` reads the match itself, for example the matched element's own `href`.
 
+### changed
+
+- **docs only.** the readme examples use a made-up shop (`shop.example.com`), instead of a scraping sandbox run by another company.
+- depends on `@crawlbrulee/sdk` 1.4.0.
+
 ## 5.3.1 (2026-10-09)
 
 ### changed
