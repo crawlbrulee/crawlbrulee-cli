@@ -185,7 +185,7 @@ of the capture rather than the run being cut short.
 
 in rare cases a screenshot can't be captured. if you requested other outputs too, you still get
 them, the response leaves out the `screenshot` field and carries the `screenshot_unavailable`
-warning; a screenshot-only call errors with
+warning; a screenshot-only call (`-ss --no-metadata`) errors with
 `unsupported_screenshot_output` instead, and you're not charged for it.
 
 the screenshot url, and every slice url, is a signed link that expires 24 hours after the scrape

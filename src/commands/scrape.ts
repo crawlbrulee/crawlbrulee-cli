@@ -403,17 +403,19 @@ export function buildScrapeRequest(url: string, opts: ScrapeOptions): CliScrapeR
     extract.images ||
     extract.screenshot !== undefined
   const elements = parseElementsFlags(opts.element, opts.elements)
-  if (elements !== undefined) {
-    extract.elements = elements
-    // On their own, elements return only the elements (plus metadata). The api
-    // turns cleaned_html on by default, so switch it off along with markdown.
-    // With a content flag, elements come on top of that content.
-    if (!pickedAny) {
-      extract.markdown = false
-      extract.cleaned_html = false
-    }
-  } else if (!pickedAny) {
+  if (elements !== undefined) extract.elements = elements
+
+  if (!pickedAny && elements === undefined) {
     extract.markdown = true
+  } else if (!wantAll) {
+    // Picked flags replace the default. The api turns its default page body on
+    // for any body flag left out, and text mode prints one body, markdown
+    // first, so a body the caller did not pick would hide the one they did
+    // (`-c` or `-r` printing markdown) or crowd out links and images. Send
+    // every body that was not picked as false. Elements on their own return
+    // only the elements (plus metadata); with a content flag they come on top.
+    if (!opts.markdown) extract.markdown = false
+    if (!opts.cleanedHtml) extract.cleaned_html = false
   }
 
   const body: CliScrapeRequest = { url, extract }

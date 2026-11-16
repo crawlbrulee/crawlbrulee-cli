@@ -23,9 +23,36 @@ describe('buildScrapeRequest — default extract resolution', () => {
 })
 
 describe('buildScrapeRequest — single-flag replaces defaults', () => {
-  it('with -c only, sends cleaned_html + metadata (no markdown)', () => {
+  it('with -c only, sends cleaned_html + metadata and turns markdown off', () => {
+    // The api's default body is markdown. Left out, it would come back, and
+    // text mode would print it instead of the cleaned html.
     const body = buildScrapeRequest('https://example.com', { cleanedHtml: true })
-    expect(body.extract).toEqual({ metadata: true, cleaned_html: true })
+    expect(body.extract).toEqual({ metadata: true, cleaned_html: true, markdown: false })
+  })
+
+  it('with -r only, sends raw_html + metadata and turns the other bodies off', () => {
+    const body = buildScrapeRequest('https://example.com', { rawHtml: true })
+    expect(body.extract).toEqual({
+      metadata: true,
+      raw_html: true,
+      markdown: false,
+      cleaned_html: false,
+    })
+  })
+
+  it('with -m only, turns cleaned_html off', () => {
+    const body = buildScrapeRequest('https://example.com', { markdown: true })
+    expect(body.extract).toEqual({ metadata: true, markdown: true, cleaned_html: false })
+  })
+
+  it('with -c -r, sends both and turns markdown off', () => {
+    const body = buildScrapeRequest('https://example.com', { cleanedHtml: true, rawHtml: true })
+    expect(body.extract).toEqual({
+      metadata: true,
+      cleaned_html: true,
+      raw_html: true,
+      markdown: false,
+    })
   })
 
   it('combining -m -l -i sends all three plus metadata', () => {
@@ -37,15 +64,41 @@ describe('buildScrapeRequest — single-flag replaces defaults', () => {
     expect(body.extract).toEqual({
       metadata: true,
       markdown: true,
+      cleaned_html: false,
       links: true,
       images: true,
     })
   })
 
-  it('a bare --screenshot replaces markdown default with screenshot-only', () => {
+  it('a bare --screenshot replaces the markdown default: screenshot + metadata only', () => {
     const body = buildScrapeRequest('https://example.com', { screenshot: true })
-    expect(body.extract?.markdown).toBeUndefined()
-    expect(body.extract?.screenshot).toEqual({ type: 'full_page' })
+    expect(body.extract).toEqual({
+      metadata: true,
+      screenshot: { type: 'full_page' },
+      markdown: false,
+      cleaned_html: false,
+    })
+  })
+
+  it('--screenshot --no-metadata asks for the screenshot alone', () => {
+    const body = buildScrapeRequest('https://example.com', { screenshot: true, metadata: false })
+    expect(body.extract).toEqual({
+      metadata: false,
+      screenshot: { type: 'full_page' },
+      markdown: false,
+      cleaned_html: false,
+    })
+  })
+
+  it('-l alone sends links + metadata and turns both bodies off', () => {
+    // With a body in the answer, text mode prints the body instead of the links.
+    const body = buildScrapeRequest('https://example.com', { links: true })
+    expect(body.extract).toEqual({
+      metadata: true,
+      links: true,
+      markdown: false,
+      cleaned_html: false,
+    })
   })
 
   it('a --screenshot with mode value is parsed via the -ss parser', () => {

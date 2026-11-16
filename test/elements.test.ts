@@ -211,7 +211,26 @@ describe('buildScrapeRequest — elements', () => {
       markdown: true,
       element: ['heading=h1'],
     })
-    expect(body.extract).toEqual({ metadata: true, markdown: true, elements: { heading: 'h1' } })
+    expect(body.extract).toEqual({
+      metadata: true,
+      markdown: true,
+      cleaned_html: false,
+      elements: { heading: 'h1' },
+    })
+  })
+
+  it('with -r, the elements come on top of the raw html only', () => {
+    const body = buildScrapeRequest('https://example.com', {
+      rawHtml: true,
+      element: ['heading=h1'],
+    })
+    expect(body.extract).toEqual({
+      metadata: true,
+      raw_html: true,
+      markdown: false,
+      cleaned_html: false,
+      elements: { heading: 'h1' },
+    })
   })
 
   it('with --all, the elements come on top of every content type', () => {
@@ -232,6 +251,8 @@ describe('buildScrapeRequest — elements', () => {
     expect(body.extract).toEqual({
       metadata: true,
       screenshot: { type: 'full_page' },
+      markdown: false,
+      cleaned_html: false,
       elements: { heading: 'h1' },
     })
   })
@@ -241,7 +262,13 @@ describe('buildScrapeRequest — elements', () => {
       links: true,
       elements: JSON.stringify(BOOKS),
     })
-    expect(body.extract).toEqual({ metadata: true, links: true, elements: BOOKS })
+    expect(body.extract).toEqual({
+      metadata: true,
+      links: true,
+      markdown: false,
+      cleaned_html: false,
+      elements: BOOKS,
+    })
   })
 
   it('leaves elements out when no element flag is given', () => {

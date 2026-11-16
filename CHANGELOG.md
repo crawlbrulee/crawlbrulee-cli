@@ -4,6 +4,12 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+## 5.4.1 (unreleased)
+
+### fixed
+
+- **you get the outputs you pick, and only those.** `-c` alone prints cleaned html and `-r` alone prints raw html. `-l`, `-i` or `--screenshot` alone return that output plus metadata, with no page body, so text mode lists the links or images. `--screenshot --no-metadata` asks for the screenshot alone. `--all` and the default (markdown + metadata) are unchanged.
+
 ## 5.4.0 (2026-11-06)
 
 ### added
