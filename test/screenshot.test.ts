@@ -124,6 +124,45 @@ describe('parseScreenshotFlag', () => {
     })
   })
 
+  describe('dark theme (last value)', () => {
+    it('a bare -ss dark is a full-page screenshot of the dark theme', () => {
+      expect(parseScreenshotFlag('dark')).toEqual({ type: 'full_page', color_scheme: 'dark' })
+    })
+
+    it('follows the mode', () => {
+      expect(parseScreenshotFlag('viewport,dark')).toEqual({
+        type: 'viewport',
+        color_scheme: 'dark',
+      })
+    })
+
+    it('follows every position, without taking one of its own', () => {
+      expect(parseScreenshotFlag('full,1280,720,mobile,800,dark')).toEqual({
+        type: 'full_page',
+        viewport: { width: 1280, height: 720 },
+        device_mode: 'mobile',
+        actions_after: [{ type: 'slice', height: 800 }],
+        color_scheme: 'dark',
+      })
+    })
+
+    it('takes light too, and is case-insensitive', () => {
+      expect(parseScreenshotFlag('viewport,Light')).toEqual({
+        type: 'viewport',
+        color_scheme: 'light',
+      })
+    })
+
+    it('sends no color_scheme when none is given', () => {
+      expect(parseScreenshotFlag('full,1280,720')).not.toHaveProperty('color_scheme')
+    })
+
+    it('refuses dark anywhere but last', () => {
+      expect(() => parseScreenshotFlag('dark,viewport')).toThrow(/must be the last value of -ss/)
+      expect(() => parseScreenshotFlag('full,dark,1280,720')).toThrow(/must be the last value/)
+    })
+  })
+
   describe('overall structure', () => {
     it('rejects more than 5 positions', () => {
       expect(() => parseScreenshotFlag('full,1920,1080,mobile,800,extra')).toThrow(

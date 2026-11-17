@@ -1,4 +1,4 @@
-import type { MapResponse, ScrapeResponse } from '@crawlbrulee/sdk'
+import type { ScrapeResponse } from '@crawlbrulee/sdk'
 import {
   CrawlbruleeError,
   RateLimitError,
@@ -12,6 +12,7 @@ import { formatError } from '../src/output/errors.js'
 import { renderMapText } from '../src/output/render-map.js'
 import { renderJobStatusText, renderScrapeText } from '../src/output/render-scrape.js'
 import { renderJson, resolveFormatMode } from '../src/output/tty.js'
+import type { CliMapResponse } from '../src/sdk-pending.js'
 
 describe('resolveFormatMode', () => {
   it('returns text when stdout is a TTY and no overrides', () => {
@@ -277,7 +278,7 @@ describe('renderMapText', () => {
         },
         usage: { total_credit_cost: 1, engine: 'http', proxy: 'basic' },
       },
-    } as MapResponse)
+    } as unknown as CliMapResponse)
     expect(out).toBe('https://a\nhttps://b\n\n# usage: 1 credits · engine http · proxy basic')
   })
 
@@ -294,7 +295,7 @@ describe('renderMapText', () => {
         },
         usage: { total_credit_cost: 1, engine: 'http', proxy: 'basic' },
       },
-    } as MapResponse)
+    } as unknown as CliMapResponse)
     expect(out).toContain('… and 2 more (use --page 2)')
   })
 
@@ -311,7 +312,7 @@ describe('renderMapText', () => {
         },
         usage: { total_credit_cost: 1, engine: 'http', proxy: 'basic' },
       },
-    } as MapResponse)
+    } as unknown as CliMapResponse)
     expect(out).toContain('# usage: 1 credits · engine http · proxy basic')
     expect(out).not.toContain('slices')
   })
@@ -612,7 +613,7 @@ describe('renderMapText — new usage fields', () => {
           proxy: 'advanced',
         },
       },
-    } as unknown as MapResponse)
+    } as unknown as CliMapResponse)
     expect(out).toBe('https://a\n\n# usage: 5 credits · engine http · proxy advanced')
   })
 
@@ -630,7 +631,7 @@ describe('renderMapText — new usage fields', () => {
           proxy: 'basic',
         },
       },
-    } as unknown as MapResponse)
+    } as unknown as CliMapResponse)
     expect(out).toContain('# usage: 0 credits · engine http · proxy basic')
   })
 })
@@ -724,7 +725,7 @@ describe('zero data retention — usage line', () => {
           proxy: 'basic',
         },
       },
-    } as MapResponse)
+    } as unknown as CliMapResponse)
     expect(out).toContain('# usage: 2 credits · engine http · proxy basic · zero data retention +1')
   })
 })

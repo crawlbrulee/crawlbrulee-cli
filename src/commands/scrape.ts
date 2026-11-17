@@ -1,4 +1,4 @@
-import type { AsyncScrapeRequest, AsyncScrapeWebhook, ScrapeRequest } from '@crawlbrulee/sdk'
+import type { AsyncScrapeWebhook } from '@crawlbrulee/sdk'
 import type { Command } from 'commander'
 
 import {
@@ -9,14 +9,12 @@ import {
 import { resolveFormatMode } from '../output/tty.js'
 import { parseDurationSeconds } from '../parsers/duration.js'
 import { parseElementsFlags } from '../parsers/elements.js'
-import {
-  parseCookiesFlags,
-  parseHeadersFlags,
-  type ScrapeCookieInput,
-} from '../parsers/headers-cookies.js'
+import { parseCookiesFlags, parseHeadersFlags } from '../parsers/headers-cookies.js'
 import { parseNonNegativeInt } from '../parsers/integers.js'
+import { parsePdfFlag } from '../parsers/pdf.js'
 import { parseProxy } from '../parsers/proxy.js'
 import { parseScreenshotFlag } from '../parsers/screenshot.js'
+import type { CliAsyncScrapeRequest, CliScrapeExtract, CliScrapeRequest } from '../sdk-pending.js'
 import { withAbortOnSigint } from './abort.js'
 import { addFormatOptions, runCommand, withErrorHandler, type CommonOptions } from './runner.js'
 
@@ -27,6 +25,7 @@ export interface ScrapeOptions extends CommonOptions {
   links?: boolean
   images?: boolean
   screenshot?: string | boolean
+  pdf?: string | boolean
   all?: boolean
   metadata?: boolean // `--no-metadata` sets this to false
   element?: string[] // repeatable `--element name=selector`
@@ -60,16 +59,7 @@ export interface ScrapeOptions extends CommonOptions {
   timeout?: string
 }
 
-/**
- * The request fields the sdk floor (1.3) does not type yet. Remove after
- * `@crawlbrulee/sdk` 1.4.0, which types `headers` and `cookies` itself.
- */
-interface HeadersAndCookies {
-  headers?: Record<string, string>
-  cookies?: ScrapeCookieInput[]
-}
-export type CliScrapeRequest = ScrapeRequest & HeadersAndCookies
-export type CliAsyncScrapeRequest = AsyncScrapeRequest & HeadersAndCookies
+export type { CliAsyncScrapeRequest, CliScrapeRequest } from '../sdk-pending.js'
 
 /** Polling knobs shared by `scrape wait` and `scrape url --async --wait`. */
 export interface WaitOptions extends CommonOptions {
@@ -109,6 +99,23 @@ elements:
   (plus metadata unless --no-metadata); add -m or another content flag to get
   the page too. rules and examples:
   https://crawlbrulee.com/docs/scrape/targeted-extraction`
+
+/** Shown under `--help` for `scrape url`: the pdf and the dark theme. */
+const PDF_HELP = `
+pdf:
+  --pdf saves the page as a pdf: on a4 sheets, as it looks on screen. give
+  words, comma-separated, in any order, to change that: pages or single (one
+  long page), a4 or letter, landscape, screen or print (the site's print
+  style). for example --pdf letter,landscape or --pdf single,print. paper and
+  landscape only go with pages. a pdf costs what a screenshot costs, and a pdf
+  and a screenshot in one request are billed once. the link expires 24 hours
+  after the scrape: download the file.
+
+dark theme:
+  end the -ss value with dark to ask the site for its dark theme, for example
+  -ss dark or -ss viewport,390,844,mobile,dark. a site without one looks the
+  same. with --pdf too, the pdf shows the dark theme; a pdf on its own is
+  made with the light theme. no extra credits.`
 
 /** Shown under `--help` for `scrape url`: headers and cookies. */
 const HEADERS_HELP = `
@@ -158,9 +165,13 @@ function registerScrapeUrlCommand(scrape: Command): void {
     // in src/index.ts before parse so users can still type either form.
     .option(
       '--screenshot [value]',
-      'screenshot (alias -ss): [mode[,width,height[,device[,slice-height]]]]'
+      'screenshot (alias -ss): [mode[,width,height[,device[,slice-height]]]][,dark]'
     )
-    .option('--all', 'extract every content type at once')
+    .option(
+      '--pdf [options]',
+      'save the page as a pdf: [pages|single][,a4|letter][,landscape][,screen|print]'
+    )
+    .option('--all', 'extract every content type at once (add --pdf for a pdf too)')
     .option('--no-metadata', 'omit page metadata from the response')
     .option(
       '--element <name=selector>',
@@ -233,7 +244,10 @@ function registerScrapeUrlCommand(scrape: Command): void {
 
   addWaitOptions(cmd)
   addFormatOptions(cmd)
-    .addHelpText('after', ELEMENTS_HELP + '\n' + HEADERS_HELP + '\n' + PAGE_STATUS_HELP)
+    .addHelpText(
+      'after',
+      PDF_HELP + '\n' + ELEMENTS_HELP + '\n' + HEADERS_HELP + '\n' + PAGE_STATUS_HELP
+    )
     .action(withErrorHandler(runScrapeUrl))
 }
 
@@ -377,11 +391,12 @@ function emitWaitNote(
 
 export function buildScrapeRequest(url: string, opts: ScrapeOptions): CliScrapeRequest {
   // `--all` turns on every extract flag (full_page screenshot unless `-ss`
-  // overrides it). Otherwise flags are opt-in; with nothing picked we default
-  // to markdown, or to elements only when an element flag is given.
+  // overrides it), but not the pdf: add `--pdf` for that. Otherwise flags are
+  // opt-in; with nothing picked we default to markdown, or to elements only
+  // when an element flag is given.
   const wantAll = opts.all === true
 
-  const extract: NonNullable<ScrapeRequest['extract']> = {
+  const extract: CliScrapeExtract = {
     metadata: opts.metadata !== false,
   }
   if (wantAll || opts.markdown) extract.markdown = true
@@ -394,6 +409,9 @@ export function buildScrapeRequest(url: string, opts: ScrapeOptions): CliScrapeR
     // a full_page default in that case.
     extract.screenshot = parseScreenshotFlag(opts.screenshot ?? true)
   }
+  if (opts.pdf !== undefined && opts.pdf !== false) {
+    extract.pdf = parsePdfFlag(opts.pdf)
+  }
 
   const pickedAny =
     extract.markdown ||
@@ -401,7 +419,8 @@ export function buildScrapeRequest(url: string, opts: ScrapeOptions): CliScrapeR
     extract.raw_html ||
     extract.links ||
     extract.images ||
-    extract.screenshot !== undefined
+    extract.screenshot !== undefined ||
+    extract.pdf !== undefined
   const elements = parseElementsFlags(opts.element, opts.elements)
   if (elements !== undefined) extract.elements = elements
 

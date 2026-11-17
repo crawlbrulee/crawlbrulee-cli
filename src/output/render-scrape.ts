@@ -1,5 +1,6 @@
-import type { AsyncJobStatusResponse, AsyncScrapeResponse, ScrapeResponse } from '@crawlbrulee/sdk'
+import type { AsyncJobStatusResponse, AsyncScrapeResponse } from '@crawlbrulee/sdk'
 
+import type { CliScrapeResponse } from '../sdk-pending.js'
 import { scrapeFooterLine, scrapeUsageLine } from './usage.js'
 
 export function renderAsyncScrapeText(res: AsyncScrapeResponse): string {
@@ -25,7 +26,7 @@ function pushGap(lines: string[]): void {
   if (lines.length > 0 && lines[lines.length - 1] !== '') lines.push('')
 }
 
-export function renderScrapeText(res: ScrapeResponse): string {
+export function renderScrapeText(res: CliScrapeResponse): string {
   const lines: string[] = []
 
   const title = res.metadata?.title
@@ -55,8 +56,15 @@ export function renderScrapeText(res: ScrapeResponse): string {
   // In rare cases a screenshot can't be captured. When other outputs were also
   // requested, the response just leaves out the `screenshot` field, so an absent
   // screenshot renders nothing — same as any other output that wasn't returned.
-  // A screenshot-only call never reaches this renderer: it fails with an
-  // `unsupported_screenshot_output` error instead.
+  // A screenshot-only call that gets no screenshot never reaches this renderer:
+  // it fails with an error instead, and an async job like it ends `failed`.
+
+  // The pdf link prints like the screenshot link. When the pdf could not be
+  // made, the field is left out and the `pdf_unavailable` warning says why.
+  if (res.pdf) {
+    if (!res.screenshot) pushGap(lines)
+    lines.push(`pdf: ${res.pdf.url}`)
+  }
 
   if (!body) {
     if (res.links && res.links.length > 0) {

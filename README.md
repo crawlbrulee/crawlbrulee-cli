@@ -72,23 +72,25 @@ scrape a url. default extraction is `markdown + metadata` (only elements + metad
 crawlbrulee scrape url https://example.com                # markdown to stdout
 crawlbrulee scrape url https://example.com | jq .markdown # JSON when piped
 crawlbrulee scrape url https://example.com -c             # cleaned HTML
-crawlbrulee scrape url https://example.com --all          # every extract field at once
+crawlbrulee scrape url https://example.com --all          # every extract field at once (not the pdf)
 crawlbrulee scrape url https://example.com -ss full       # full-page screenshot
+crawlbrulee scrape url https://example.com -ss full,dark  # full-page screenshot of the dark theme
+crawlbrulee scrape url https://example.com --pdf          # the page as a pdf
 crawlbrulee scrape url https://example.com --proxy advanced --require-js
 crawlbrulee scrape url https://example.com -o out.json
 ```
 
 every scrape response carries a `response_meta.usage` object that says what the call cost and why:
 
-| field                             | what it means                                                             |
-| --------------------------------- | ------------------------------------------------------------------------- |
-| `total_credit_cost`               | what the call cost, in credits                                            |
-| `engine_credit_cost`              | the engine base: `http` 1, `browser` 3, `screenshot` 5, `cache` 0         |
-| `proxy_multiplier`                | `1` for the `basic` proxy tier, `5` for `advanced`                        |
-| `screenshot_slicing_credit_cost`  | `1` when the screenshot was cut into slices on this call, else `0`        |
-| `zero_data_retention_credit_cost` | `1` when `--zero-data-retention` added its credit to this call, else `0`  |
-| `engine`                          | `http`, `browser`, `screenshot`, or `cache` — what delivered the result   |
-| `proxy`                           | the **resolved** tier actually used (`basic` \| `advanced`, never `auto`) |
+| field                             | what it means                                                                 |
+| --------------------------------- | ----------------------------------------------------------------------------- |
+| `total_credit_cost`               | what the call cost, in credits                                                |
+| `engine_credit_cost`              | the engine base: `http` 1, `browser` 3, `screenshot` 5 (a pdf too), `cache` 0 |
+| `proxy_multiplier`                | `1` for the `basic` proxy tier, `5` for `advanced`                            |
+| `screenshot_slicing_credit_cost`  | `1` when the screenshot was cut into slices on this call, else `0`            |
+| `zero_data_retention_credit_cost` | `1` when `--zero-data-retention` added its credit to this call, else `0`      |
+| `engine`                          | `http`, `browser`, `screenshot`, or `cache` — what delivered the result       |
+| `proxy`                           | the **resolved** tier actually used (`basic` \| `advanced`, never `auto`)     |
 
 `total_credit_cost` is always `engine_credit_cost × proxy_multiplier + screenshot_slicing_credit_cost + zero_data_retention_credit_cost`.
 a fully cached result costs `0` (only parts still computed fresh, e.g. a newly produced
@@ -132,8 +134,9 @@ a second family reports a section whose extraction failed outright — the field
 | `inline_images_unavailable` | image extraction failed — `images` is omitted or empty.                                                          |
 | `metadata_unavailable`      | metadata extraction failed — `metadata` is omitted or empty.                                                     |
 | `screenshot_unavailable`    | a screenshot was asked for, but the page came back from the `http` engine without one — `screenshot` is omitted. |
+| `pdf_unavailable`           | a pdf was asked for, but it could not be made; `pdf` is omitted.                                                 |
 
-one more code, `custom_user_agent`, means the request set its own `User-Agent` header (with `--header` or `--headers`); this can lower the success rate.
+`pdf_single_page_overflow` means a `--pdf single` page was taller than 15,000px, so the pdf goes on over more pages. `custom_user_agent` means the request set its own `User-Agent` header (with `--header` or `--headers`); this can lower the success rate.
 
 the page body has no such code: if it can't be extracted the scrape fails outright rather than returning a hollow result, and isn't billed. warnings are stored with the result, so cache hits and `result` fetches report them too, filtered to the outputs you asked for. `metadata_truncated` is retired and no longer sent, though a result stored before that change can still carry it.
 
@@ -149,7 +152,8 @@ and if you request an extract that doesn't apply to the content type (e.g. `elem
 | `--links`        | `-l`  | extract links (up to 30,000 per page)   |
 | `--images`       | `-i`  | extract inline images (up to 10,000)    |
 | `--screenshot`   | `-ss` | capture a screenshot (see syntax below) |
-| `--all`          | —     | every extract field at once             |
+| `--pdf`          | —     | save the page as a pdf (see below)      |
+| `--all`          | —     | every extract field except the pdf      |
 | `--no-metadata`  | —     | omit page metadata from the response    |
 
 `--images` returns absolute image urls — relative `src`s are resolved against the page url
@@ -167,6 +171,7 @@ above). every extract field is documented under
 -ss <mode>,<width>,<height>
 -ss <mode>,<width>,<height>,<device>
 -ss <mode>,<width>,<height>,<device>,<slice-height>
+-ss <any of the above>,dark
 ```
 
 | position | values                              | default              |
@@ -186,20 +191,60 @@ of the capture rather than the run being cut short.
 in rare cases a screenshot can't be captured. if you requested other outputs too, you still get
 them, the response leaves out the `screenshot` field and carries the `screenshot_unavailable`
 warning; a screenshot-only call (`-ss --no-metadata`) errors with
-`unsupported_screenshot_output` instead, and you're not charged for it.
+`unsupported_screenshot_output` instead, and you're not charged for it. when no capture could
+be made at all, such a call fails with `internal_server_error` (HTTP 500), also not billed. with
+`--async`, such a job ends `failed` and isn't billed (see [async jobs that ask only for a capture](#async-jobs-that-ask-only-for-a-capture)).
 
 the screenshot url, and every slice url, is a signed link that expires 24 hours after the scrape
 (for `--async`, 24 hours after you submitted the job). download the image and keep the file, not
 the link.
 
+**dark theme.** end the value with `dark` to ask the site for its dark theme: `-ss dark`, `-ss viewport,dark` or `-ss full,390,844,mobile,dark`. `dark` never takes a position of its own, and it must come last. a site without a dark theme, or whose dark theme is only a switch on the page, looks the same as with `light`, the default. it costs no extra credits. with `--pdf` too, the pdf shows the dark theme; a pdf on its own is made with the light theme.
+
 `full` is a typeable shortcut for `full_page`. positions are strictly left-to-right — to set position N you must also fill 1..N-1. a width or height outside `16–10000` is rejected up front with a clear message. full capture options: [screenshots](https://crawlbrulee.com/docs/scrape/screenshots).
 
 ```bash
-crawlbrulee scrape url https://x.com -ss viewport
-crawlbrulee scrape url https://x.com -ss full,1920,1080
-crawlbrulee scrape url https://x.com -ss full,1920,1080,mobile
-crawlbrulee scrape url https://x.com -ss full,1280,720,desktop,800   # sliced
+crawlbrulee scrape url https://example.com -ss viewport
+crawlbrulee scrape url https://example.com -ss full,1920,1080
+crawlbrulee scrape url https://example.com -ss full,1920,1080,mobile
+crawlbrulee scrape url https://example.com -ss full,1280,720,desktop,800   # sliced
+crawlbrulee scrape url https://example.com -ss viewport,390,844,mobile,dark  # dark theme
 ```
+
+**save the page as a pdf (`--pdf`)**
+
+`--pdf` saves the page as a pdf: a real document, with text you can select and links that work.
+on its own it returns the pdf plus metadata (add `--no-metadata` for the pdf alone). a bare
+`--pdf` puts the page on a4 sheets, as it looks on screen. to change that, give words,
+comma-separated, in any order:
+
+| word                | what it does                                                                                         |
+| ------------------- | ---------------------------------------------------------------------------------------------------- |
+| `pages` \| `single` | sheets of paper (the default), or one long page as tall as the web page, up to 15,000px              |
+| `a4` \| `letter`    | the paper size (default `a4`). only with `pages`                                                     |
+| `landscape`         | turn the paper sideways. only with `pages`                                                           |
+| `screen` \| `print` | the page as it looks on screen (the default), or the site's own print style, which often hides menus |
+
+```bash
+crawlbrulee scrape url https://example.com/report --pdf
+crawlbrulee scrape url https://example.com/report --pdf letter,landscape
+crawlbrulee scrape url https://example.com/report --pdf single,print --no-metadata
+crawlbrulee scrape url https://example.com/report --pdf -ss full,dark   # a dark screenshot, and the pdf is dark too
+```
+
+text mode prints the link as `pdf: <url>`, like the screenshot link; json has `pdf.url` and
+`pdf.bytes`. the link is a signed link that expires 24 hours after the scrape (for `--async`, 24
+hours after you submitted the job): download the file and keep it, not the link.
+
+a pdf costs what a screenshot costs (`engine screenshot`), and a pdf and a screenshot in one
+request are billed once. `--all` leaves the pdf out; add `--pdf` to get it too. a cached copy
+answers only when it has a pdf made with the same settings; `--cache-max-age 0` always makes a
+new one. in rare cases the pdf can't be made: you still get the rest, with the `pdf_unavailable`
+warning, and the request costs what it costs without the pdf. a pdf-only call
+(`--pdf --no-metadata`) on a page that can't be made into a pdf errors with
+`unsupported_pdf_output` (HTTP 422) instead, and you're not charged for it. when no capture
+could be made at all, such a call fails with `internal_server_error` (HTTP 500), also not
+billed. with `--async`, such a job ends `failed` and isn't billed (see [async jobs that ask only for a capture](#async-jobs-that-ask-only-for-a-capture)).
 
 **read values by css selector (elements)**
 
@@ -378,6 +423,15 @@ when the job is `done`, the status carries the `response_meta.usage` object; whe
 `failed`, an `# error: …` line explains why. a job whose page came back with a status like 404
 is `done`, not `failed` — the page is in the result, with its `page_status_code`.
 
+#### async jobs that ask only for a capture
+
+a job that asked only for a screenshot, only for a pdf, or for both and nothing else, and got
+no capture, ends `failed` and isn't billed. `scrape status` shows `failed` with a general
+message, and `scrape wait` (or `--async --wait`) stops with `job_failed`. `scrape result` names
+the reason: `unsupported_screenshot_output` or `unsupported_pdf_output` (HTTP 422) when the
+page's content type can't be captured, such as json or plain text, or `job_failed` (HTTP 400)
+when the capture could not be made.
+
 ### `crawlbrulee scrape result <job-id>`
 
 fetch the result of a completed async job. renders exactly like a synchronous `scrape url`,
@@ -385,7 +439,7 @@ page status included.
 if the job isn't finished yet, it errors — check `scrape status` first, or use `scrape wait`.
 
 `scrape status` and `scrape result` answer for 24 hours after you submit the job. after that both
-return `not_found`, the same as for an unknown job id, and the screenshot links in the result have
+return `not_found`, the same as for an unknown job id, and the screenshot and pdf links in the result have
 expired too.
 
 ```bash
@@ -410,33 +464,51 @@ job …` note to stderr so stdout stays clean for piping; press Ctrl-C to cancel
 
 ### `crawlbrulee map <url>`
 
-list urls discovered on a site (sitemap + homepage crawl, deduped).
+list urls discovered on a site, from its sitemaps plus the links on its home page. a plain
+`crawlbrulee map <url>` lists pages: it reads the site's top sitemap files and two levels of
+nested ones.
 
 ```bash
 crawlbrulee map https://example.com
 crawlbrulee map https://example.com --limit 500 --page 2
-crawlbrulee map https://example.com --max-urls 20000
+crawlbrulee map https://example.com --max-results 20000
 crawlbrulee map https://example.com --sitemap-only
 crawlbrulee map https://example.com --internal-only --no-subdomains
 crawlbrulee map https://example.com --external-only
 crawlbrulee map https://example.com --country DE
 crawlbrulee map https://example.com -o links.txt
+crawlbrulee map https://example.com --depth 0 --entries sitemaps   # the top sitemap files
+crawlbrulee map https://example.com --sitemap-url https://example.com/sitemap-products-1.xml.gz
+crawlbrulee map https://example.com --modified-since 2026-11-01    # pages changed since then
 ```
 
-| flag                    | effect                                                                                     |
-| ----------------------- | ------------------------------------------------------------------------------------------ |
-| `--max-urls <n>`        | total urls to collect (default 5000, api max 100000)                                       |
-| `--limit <n>`           | urls per page (default 5000, api max 10000)                                                |
-| `--page <n>`            | page number (1-indexed)                                                                    |
-| `--sitemap-only`        | skip homepage extraction, use `sitemap.xml` only                                           |
-| `--internal-only`       | same-domain links only                                                                     |
-| `--external-only`       | external-domain links only                                                                 |
-| `--no-subdomains`       | exclude subdomains from internal results                                                   |
-| `--proxy <tier>`        | `basic` \| `advanced` \| `auto`                                                            |
-| `--cache-max-age <sec>` | cache cutoff in seconds                                                                    |
-| `--zero-data-retention` | keep the result out of the shared cache (+1 credit; must be enabled for your organization) |
-| `--country <iso>`       | ISO 3166-1 alpha-2 country — proxy egress hint (`eu` / `europe` also accepted)             |
-| `-o, --output <file>`   | write to a file instead of stdout                                                          |
+| flag                      | effect                                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `--max-results <n>`       | the most entries to find (default 5000, api max 100000), counting only the kind in `--entries`         |
+| `--limit <n>`             | urls per page (default 5000, api max 10000)                                                            |
+| `--page <n>`              | page number (1-indexed)                                                                                |
+| `--sitemap-url <url>`     | start from this sitemap file, on the same site or on a host the site's robots.txt names, such as a CDN |
+| `--depth <n>`             | how many levels of nested sitemaps to follow: `0` to `3` (default `3`; see below)                      |
+| `--entries <kind>`        | what to return: `pages` (default), `sitemaps` or `all`                                                 |
+| `--modified-since <date>` | only entries whose `lastmod` is at or after it (see below)                                             |
+| `--sitemap-only`          | use the sitemaps only: leave out the links found on the home page                                      |
+| `--internal-only`         | same-domain links only                                                                                 |
+| `--external-only`         | external-domain links only                                                                             |
+| `--no-subdomains`         | exclude subdomains from internal results                                                               |
+| `--proxy <tier>`          | `basic` \| `advanced` \| `auto`                                                                        |
+| `--cache-max-age <sec>`   | cache cutoff in seconds                                                                                |
+| `--zero-data-retention`   | keep the result out of the shared cache (+1 credit; must be enabled for your organization)             |
+| `--country <iso>`         | ISO 3166-1 alpha-2 country — proxy egress hint (`eu` / `europe` also accepted)                         |
+| `-o, --output <file>`     | write to a file instead of stdout                                                                      |
+
+**text output.** each line is a url, so the list pipes straight into the next command. with
+`--entries all`, where pages and sitemap files mix, each line is `<type> <lastmod> <url>`
+instead: the type is `page` or `sitemap`, and the lastmod is the entry's date from the sitemap,
+in UTC, or `-` when it has none. the url comes last, so `awk '{print $NF}'` still gives the
+urls. sitemap files the call did not read print at the end, as `#   <url>` lines after
+`# 2 sitemap files not read (read each with --sitemap-url <url>):`. json always has `type` and
+`lastmod` on every link (`lastmod` is `null` when the sitemap gives none, and on every link
+found on the home page).
 
 the map response's `response_meta` carries a `usage` object alongside its
 `pagination`/`truncation` blocks. it has the same cost fields as a scrape, minus slicing:
@@ -445,25 +517,64 @@ the map response's `response_meta` carries a `usage` object alongside its
 `# usage: <total_credit_cost> credits · engine <engine> · proxy <proxy>` . a map has no
 `page_status_code`: it reads many pages, not one.
 
-**`--max-urls` and `--limit` are different ceilings.** `--limit` is a page size: it trims
-this response only, and `--page` gets you the rest. `--max-urls` is a discovery budget —
+**`--max-results` and `--limit` are different ceilings.** `--limit` is a page size: it trims
+this response only, and `--page` gets you the rest. `--max-results` is a discovery budget —
 collection _stops_ when it fills up, so urls past it were never found and no amount of
 paging brings them back. both default to 5000; the maximums are 100000 and 10000.
 
-raising `--max-urls` doesn't change the per-map credit price, but it is not free either: it
+raising `--max-results` doesn't change the per-map credit price, but it is not free either: it
 does more discovery work, and a cached map built under a smaller budget can't answer a
 bigger request, so the retry runs fresh and is billed instead of served free from cache.
 
 the json response says when discovery stopped early: `response_meta.truncation.discovery_capped`
-is `true` and `discovery_cap_reason` names the limit that stopped it — `max_urls`, `time`,
-`file_budget`, `depth`, or `file_size`. **only `max_urls` is one you can lift** (retry with a
-bigger `--max-urls`); the others mean the site is too big, deep or slow for one pass.
-`sitemaps_skipped` counts sitemap files that were skipped or read only in part. text mode
-does not print any of this today, so use `--json` when you need to know the list is complete.
+is `true` and `discovery_cap_reason` names the limit that stopped it:
+
+- `max_results`: your own budget was reached. retry with a bigger `--max-results`.
+- `depth`: there are sitemap files past the `--depth` you asked for. they are listed as
+  unread. this is the answer to the depth you chose, not a fault.
+- `unread_files`: a sitemap file could not be read whole this time. when its download broke
+  off, the links received before the break are returned, and the file is listed as unread.
+  asking again later can return more.
+- `time`, `file_budget`, `file_size`: the site is too big or slow for one pass. with
+  `file_size`, a file of pages that turns out too large while it is read gives the links in its
+  first part. a file that says up front that it is over the size limit, or any other file that
+  turns out too large (such as a sitemap index), gives nothing and is listed as unread.
+
+`sitemaps_skipped` counts sitemap files that were skipped or read only in part, and
+`unread_sitemaps` lists the sitemap files the call knew about but did not read whole. text mode lists
+the unread files but none of the rest, so use `--json` when you need to know the list is
+complete.
 
 returned urls come back normalized, the same form `scrape` reports for its own `url`, so
 mapping then scraping stays on one host. results are ordered so the most useful links land
-on page 1.
+on page 1. the site root is listed only when a sitemap lists it.
+
+**a very large site, in several calls**
+
+a very large or deep site is mapped in several calls: list its sitemap files with
+`--depth 0 --entries sitemaps`, then read each one with `--sitemap-url`. the unread sitemap
+files at the end of the output are the ones to read next. the full walk-through is in
+[map a very large or deep site in several calls](https://crawlbrulee.com/docs/map/sitemaps#map-a-very-large-or-deep-site-in-several-calls).
+
+```bash
+crawlbrulee map https://example.com --depth 0 --entries sitemaps
+crawlbrulee map https://example.com --sitemap-url https://example.com/sitemap-products-1.xml.gz
+```
+
+- at `--depth 0`, the same files print twice: once as the links you asked for, and again as
+  files not read.
+- `--modified-since` takes a date (`2026-11-01`, the start of that day in UTC) or an ISO 8601
+  date and time with a time zone (`2026-11-01T08:00:00+01:00`). an entry with no `lastmod` is
+  left out, and a map with `--modified-since` is always fresh, so `--cache-max-age` does
+  nothing. see
+  [find what changed since a date](https://crawlbrulee.com/docs/map/sitemaps#find-what-changed-since-a-date).
+- if the site answers `429` on the file in `--sitemap-url`, on its robots.txt or on one of its top
+  sitemap files, the map ends with
+  `too_many_requests` (not billed). wait, then try again.
+
+**old names.** `--max-urls` is the old name of `--max-results`. it still works and sends the
+same thing. in json, `total_before_max_urls` is the old name of `total_before_max_results`, with
+the same value; the api stops sending it on 2027-02-01.
 
 see the [map endpoint](https://crawlbrulee.com/docs/map) for discovery rules and pagination semantics.
 
@@ -600,6 +711,8 @@ site that answers with an error page is different: that page comes back as a suc
 scrape, with its `page_status_code`.
 an async job that could not reach the site ends as `failed`, so `scrape wait` reports
 `job_failed` with the job's general failure message — submitting it again later may help too.
+so does a job that asked only for a screenshot or a pdf and got none: `scrape result` then
+names the reason.
 
 the exit code is `1` on any failure and `0` on success, so you can branch on it in scripts. it
 tells you _that_ the call failed, not whether retrying will help: for that, read the error name.

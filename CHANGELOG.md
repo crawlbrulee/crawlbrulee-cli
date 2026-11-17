@@ -4,7 +4,26 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
-## 5.4.1 (unreleased)
+## 5.5.0 (2026-11-18)
+
+### added
+
+- **save a page as a pdf with `--pdf`.** a bare `--pdf` puts the page on a4 sheets, as it looks on screen. give words, comma-separated, in any order, to change that: `pages` or `single` (one long page), `a4` or `letter`, `landscape`, `screen` or `print` (the site's print style), for example `--pdf letter,landscape`. paper and landscape only go with `pages`; the cli refuses them with `single` before any request. a pdf costs what a screenshot costs, and a pdf and a screenshot in one request are billed once. it works on `scrape url`, also with `--async` and `--wait`.
+- like the other output flags, `--pdf` replaces the default outputs: on its own it returns the pdf plus metadata, and `--pdf --no-metadata` asks for the pdf alone. `--all` leaves the pdf out; add `--pdf` to get it too.
+- text mode prints the link as `pdf: <url>`, like the screenshot link. json passes `pdf.url` and `pdf.bytes` through. the link is signed and expires 24 hours after the scrape.
+- the readme lists the new `pdf_unavailable` and `pdf_single_page_overflow` warnings, and the `unsupported_pdf_output` error (HTTP 422, not billed) for a pdf-only call on a page that can't be made into a pdf.
+- **dark-theme screenshots.** end the `-ss` value with `dark` to ask the site for its dark theme: `-ss dark`, `-ss viewport,dark` or `-ss full,390,844,mobile,dark`. `dark` never takes a position of its own. no extra credits. with `--pdf` too, the pdf shows the dark theme.
+- **new `map` flags, named like the api fields.** `--sitemap-url <url>` starts from one sitemap file on the same site, or on a host the site's robots.txt names. `--depth <n>` says how many levels of nested sitemaps to follow (`0` to `3`, default `3`). `--entries <pages|sitemaps|all>` picks what comes back (default `pages`). `--modified-since <date>` keeps only entries changed at or after a date (`2026-11-01`, or an ISO 8601 date and time with a time zone). so a very large site can be mapped in several calls: `--depth 0 --entries sitemaps` lists its top sitemap files, then `--sitemap-url` reads each one.
+- **`--max-results <n>`** sets the most entries the map finds (default 5000, max 100000), counting only the kind in `--entries`.
+- text mode lists the sitemap files a map did not read, as `#` lines after the links, so you can read them next with `--sitemap-url`. with `--entries all`, each line is `<type> <lastmod> <url>`, with the url last; otherwise each line is just the url. json passes `type`, `lastmod`, `total_before_max_results` and `unread_sitemaps` through.
+- `map --help` and the readme say how to map a large site in several calls, why `--entries pages` on a sitemap index returns no pages, and how `--modified-since` works with the cache.
+- the readme says that an async job that asked only for a screenshot, a pdf or both and got none ends `failed` and isn't billed: `scrape wait` stops with `job_failed`, and `scrape result` names the reason (`unsupported_screenshot_output`, `unsupported_pdf_output` or `job_failed`).
+
+### changed
+
+- **`--max-urls` is deprecated.** use `--max-results`, which means the same. `--max-urls` still works, now sends `max_results`, and is no longer listed in `--help`. giving both is refused.
+- `--sitemap-only` says what it does now: leave out the links found on the home page, and use the sitemaps only.
+- **docs only.** the readme's screenshot examples use `example.com`, not a real site.
 
 ### fixed
 

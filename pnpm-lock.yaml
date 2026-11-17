@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@crawlbrulee/sdk':
-        specifier: ^1.4.0
-        version: 1.4.0
+        specifier: ^1.5.0
+        version: 1.5.0
       '@inquirer/prompts':
         specifier: ^7.0.0
         version: 7.10.1(@types/node@22.20.5)
@@ -45,8 +45,8 @@ importers:
 
 packages:
 
-  '@crawlbrulee/sdk@1.4.0':
-    resolution: {integrity: sha512-twfC3B+RQOaF0adRJ8MmRboXD8Gtbl66CPjPXfMjHmxSPpVziapecOYy9YZH4maY5ytNyJiNO19iCUMkiO6E1Q==}
+  '@crawlbrulee/sdk@1.5.0':
+    resolution: {integrity: sha512-H/w0ffSBtOHGxPgqFHFaEw4ikrGrfNmmu6UAFyIW8rDAdeYIthNP0T2mvzlFXMzXHDPXEu79gEt/I21EfJKclw==}
     engines: {node: '>=22'}
 
   '@eslint-community/eslint-utils@4.10.1':
@@ -1369,7 +1369,7 @@ packages:
 
 snapshots:
 
-  '@crawlbrulee/sdk@1.4.0': {}
+  '@crawlbrulee/sdk@1.5.0': {}
 
   '@eslint-community/eslint-utils@4.10.1(eslint@9.39.5)':
     dependencies:

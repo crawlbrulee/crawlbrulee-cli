@@ -1,5 +1,7 @@
 import type { ScreenshotRequest } from '@crawlbrulee/sdk'
 
+import type { ColorScheme } from '../sdk-pending.js'
+
 export class ScreenshotParseError extends Error {
   constructor(message: string) {
     super(message)
@@ -11,7 +13,7 @@ export class ScreenshotParseError extends Error {
 export type ParsedScreenshot = Pick<
   ScreenshotRequest,
   'type' | 'viewport' | 'device_mode' | 'actions_after'
->
+> & { color_scheme?: ColorScheme }
 
 const MIN_SLICE_HEIGHT = 500
 // Server bounds for a custom viewport (out-of-range → 400). Mirror them here so
@@ -20,6 +22,7 @@ const MIN_VIEWPORT_DIM = 16
 const MAX_VIEWPORT_DIM = 10000
 const SCREENSHOT_MODES = ['viewport', 'full', 'full_page'] as const
 const DEVICE_MODES = ['desktop', 'mobile'] as const
+const COLOR_SCHEMES: readonly ColorScheme[] = ['light', 'dark']
 
 // commander passes `true` for boolean-form invocations (bare `-ss`),
 // or the string value for `-ss <value>`.
@@ -34,6 +37,12 @@ export function parseScreenshotFlag(raw: ScreenshotFlagInput): ParsedScreenshot 
   }
 
   const parts = raw.split(',').map(s => s.trim())
+
+  // `dark` (or `light`) may end the list, after the positional values:
+  // `-ss dark`, `-ss full,dark`, `-ss viewport,390,844,mobile,dark`. It never
+  // takes a position of its own, so the positions keep their meaning.
+  const colorScheme = takeColorScheme(parts)
+
   if (parts.length > 5) {
     throw new ScreenshotParseError(`too many values for -ss (max 5, got ${parts.length})`)
   }
@@ -72,7 +81,27 @@ export function parseScreenshotFlag(raw: ScreenshotFlagInput): ParsedScreenshot 
     result.actions_after = [{ type: 'slice', height: sliceHeight }]
   }
 
+  if (colorScheme !== undefined) {
+    result.color_scheme = colorScheme
+  }
+
   return result
+}
+
+/** Remove a trailing `dark` / `light` from `parts` and return it. */
+function takeColorScheme(parts: string[]): ColorScheme | undefined {
+  const last = (parts[parts.length - 1] ?? '').toLowerCase()
+  if (!COLOR_SCHEMES.includes(last as ColorScheme)) {
+    // Anywhere else, a color scheme would shift the positions: say where it goes.
+    if (parts.some(p => COLOR_SCHEMES.includes(p.toLowerCase() as ColorScheme))) {
+      throw new ScreenshotParseError(
+        'dark or light must be the last value of -ss, after the mode, size, device and slice height'
+      )
+    }
+    return undefined
+  }
+  parts.pop()
+  return last as ColorScheme
 }
 
 function required(value: string | undefined, message: string): string {

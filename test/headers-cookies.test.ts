@@ -561,7 +561,7 @@ describe('an unknown --flag=value never prints the value', () => {
   }
 
   it('on map, which takes no cookies', async () => {
-    const err = await stderrOf(['map', 'https://e.com', `--cookie=sid=${SECRET}`])
+    const err = await stderrOf(['map', 'https://example.com', `--cookie=sid=${SECRET}`])
     expect(err).toContain("unknown option '--cookie'")
     expect(err).not.toContain(SECRET)
   })
@@ -570,7 +570,7 @@ describe('an unknown --flag=value never prints the value', () => {
     const err = await stderrOf([
       'scrape',
       'url',
-      'https://e.com',
+      'https://example.com',
       `--heder=Authorization: Bearer ${SECRET}`,
     ])
     expect(err).toContain("unknown option '--heder'")
@@ -578,12 +578,12 @@ describe('an unknown --flag=value never prints the value', () => {
   })
 
   it('when the value holds a quote', async () => {
-    const err = await stderrOf(['map', 'https://e.com', `--cookie=sid='${SECRET}'`])
+    const err = await stderrOf(['map', 'https://example.com', `--cookie=sid='${SECRET}'`])
     expect(err).not.toContain(SECRET)
   })
 
   it('on a short flag with the value stuck to it', async () => {
-    const err = await stderrOf(['map', 'https://e.com', `-x${SECRET}`])
+    const err = await stderrOf(['map', 'https://example.com', `-x${SECRET}`])
     expect(err).toContain("unknown option '-x'")
     expect(err).not.toContain(SECRET)
   })
