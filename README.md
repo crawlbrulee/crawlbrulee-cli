@@ -337,8 +337,8 @@ limits and the full rules: [headers and cookies](https://crawlbrulee.com/docs/sc
 **other scrape flags:**
 
 ```
---proxy <basic|advanced|auto>        default auto (basic tier first, escalates to advanced on failure)
---require-js                         render with a headless browser
+--proxy <basic|advanced|auto>        default auto: steps up on its own (a stronger proxy, a real browser, or both)
+--require-js                         go straight to a headless browser (without it, a page that needs one still gets one)
 --exclude-selectors "nav,footer"     CSS selectors stripped from the result
 --cache-max-age 86400                cache cutoff in seconds
 --zero-data-retention                keep the result out of the shared cache (+1 credit; must be enabled for your organization)
@@ -478,6 +478,7 @@ crawlbrulee map https://example.com --external-only
 crawlbrulee map https://example.com --country DE
 crawlbrulee map https://example.com -o links.txt
 crawlbrulee map https://example.com --depth 0 --entries sitemaps   # the top sitemap files
+crawlbrulee map https://example.com --depth 1 --entries sitemaps   # the top files and every file they list
 crawlbrulee map https://example.com --sitemap-url https://example.com/sitemap-products-1.xml.gz
 crawlbrulee map https://example.com --modified-since 2026-11-01    # pages changed since then
 ```
@@ -489,7 +490,7 @@ crawlbrulee map https://example.com --modified-since 2026-11-01    # pages chang
 | `--page <n>`              | page number (1-indexed)                                                                                |
 | `--sitemap-url <url>`     | start from this sitemap file, on the same site or on a host the site's robots.txt names, such as a CDN |
 | `--depth <n>`             | how many levels of nested sitemaps to follow: `0` to `3` (default `3`; see below)                      |
-| `--entries <kind>`        | what to return: `pages` (default), `sitemaps` or `all`                                                 |
+| `--entries <kind>`        | what to return: `pages` (default), `sitemaps` (of type `sitemap` or `sitemap_index`) or `all`          |
 | `--modified-since <date>` | only entries whose `lastmod` is at or after it (see below)                                             |
 | `--sitemap-only`          | use the sitemaps only: leave out the links found on the home page                                      |
 | `--internal-only`         | same-domain links only                                                                                 |
@@ -503,7 +504,7 @@ crawlbrulee map https://example.com --modified-since 2026-11-01    # pages chang
 
 **text output.** each line is a url, so the list pipes straight into the next command. with
 `--entries all`, where pages and sitemap files mix, each line is `<type> <lastmod> <url>`
-instead: the type is `page` or `sitemap`, and the lastmod is the entry's date from the sitemap,
+instead: the type is `page`, `sitemap` or `sitemap_index`, and the lastmod is the entry's date from the sitemap,
 in UTC, or `-` when it has none. the url comes last, so `awk '{print $NF}'` still gives the
 urls. sitemap files the call did not read print at the end, as `#   <url>` lines after
 `# 2 sitemap files not read (read each with --sitemap-url <url>):`. json always has `type` and
@@ -531,7 +532,8 @@ is `true` and `discovery_cap_reason` names the limit that stopped it:
 
 - `max_results`: your own budget was reached. retry with a bigger `--max-results`.
 - `depth`: there are sitemap files past the `--depth` you asked for. they are listed as
-  unread. this is the answer to the depth you chose, not a fault.
+  unread. this is the answer to the depth you chose, not a fault: read them with
+  `--sitemap-url`, or ask with a higher `--depth`.
 - `unread_files`: a sitemap file could not be read whole this time. when its download broke
   off, the links received before the break are returned, and the file is listed as unread.
   asking again later can return more.
@@ -545,6 +547,13 @@ is `true` and `discovery_cap_reason` names the limit that stopped it:
 the unread files but none of the rest, so use `--json` when you need to know the list is
 complete.
 
+a link's `type` is `page`, `sitemap` or `sitemap_index`. a `sitemap_index` is a sitemap file
+that this map found to be a sitemap index (a file that lists other sitemap files), whether it
+read all of it, part of it, or only its start; it can also be listed as unread when the map did
+not read all of it. any other sitemap file is a `sitemap`: one that lists pages, or one whose
+kind the map did not learn (past `--depth`, or it could not be read). read either kind with
+`--sitemap-url` in another call.
+
 returned urls come back normalized, the same form `scrape` reports for its own `url`, so
 mapping then scraping stays on one host. results are ordered so the most useful links land
 on page 1. the site root is listed only when a sitemap lists it.
@@ -552,12 +561,20 @@ on page 1. the site root is listed only when a sitemap lists it.
 **a very large site, in several calls**
 
 a very large or deep site is mapped in several calls: list its sitemap files with
-`--depth 0 --entries sitemaps`, then read each one with `--sitemap-url`. the unread sitemap
-files at the end of the output are the ones to read next. the full walk-through is in
+`--depth 1 --entries sitemaps --json`. then read each link of type `sitemap` with
+`--sitemap-url`, plus each `sitemap_index` link that is also in
+`.response_meta.truncation.unread_sitemaps` (an index this map read only in part). the files
+of an index read whole are already in your list. a listed
+file shows as `sitemap` until a map opens it, even when it is a sitemap index itself; reading
+it then follows its own files, and its own unread sitemap files (in text output, the lines at
+the end) are the ones to read next. the full walk-through is in
 [map a very large or deep site in several calls](https://crawlbrulee.com/docs/map/sitemaps#map-a-very-large-or-deep-site-in-several-calls).
 
 ```bash
-crawlbrulee map https://example.com --depth 0 --entries sitemaps
+crawlbrulee map https://example.com --depth 1 --entries sitemaps --json \
+  | jq -r '.response_meta.truncation.unread_sitemaps as $unread | .links[]
+      | select(.type == "sitemap" or (.type == "sitemap_index" and (.url | IN($unread[]))))
+      | .url'
 crawlbrulee map https://example.com --sitemap-url https://example.com/sitemap-products-1.xml.gz
 ```
 
@@ -565,8 +582,11 @@ crawlbrulee map https://example.com --sitemap-url https://example.com/sitemap-pr
   files not read.
 - `--modified-since` takes a date (`2026-11-01`, the start of that day in UTC) or an ISO 8601
   date and time with a time zone (`2026-11-01T08:00:00+01:00`). an entry with no `lastmod` is
-  left out, and a map with `--modified-since` is always fresh, so `--cache-max-age` does
-  nothing. see
+  left out. every sitemap file is read whatever its own `lastmod`, and each entry returned, a
+  page or a sitemap file, is judged by its own `lastmod`: with `--entries sitemaps`, a file
+  comes back when its own `lastmod` matches, not when a page in it does, so use
+  `--entries pages` to find the pages that changed. a map with `--modified-since` is always
+  fresh, so `--cache-max-age` does nothing. see
   [find what changed since a date](https://crawlbrulee.com/docs/map/sitemaps#find-what-changed-since-a-date).
 - if the site answers `429` on the file in `--sitemap-url`, on its robots.txt or on one of its top
   sitemap files, the map ends with

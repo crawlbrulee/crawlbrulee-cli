@@ -202,9 +202,12 @@ function registerScrapeUrlCommand(scrape: Command): void {
 
     .option(
       '--proxy <tier>',
-      'proxy tier: basic | advanced | auto (default: auto — tries basic tier first, escalates to advanced on failure)'
+      'proxy tier: basic | advanced | auto (default: auto, which steps up on its own when a site needs more: a stronger proxy, a real browser, or both)'
     )
-    .option('--require-js', 'render with a headless browser')
+    .option(
+      '--require-js',
+      'go straight to a headless browser (without it, a page that needs one still gets one)'
+    )
     .option(
       '--exclude-selectors <csv>',
       'CSS selectors to strip, comma-separated (max 100). Shapes the extracted content and the screenshot, never --raw-html'

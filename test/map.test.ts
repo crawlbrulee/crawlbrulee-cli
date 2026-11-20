@@ -338,9 +338,24 @@ describe('renderMapText', () => {
   it('shows type and lastmod on each line with showTypes', () => {
     const out = renderMapText(mapResponse(), { showTypes: true })
     expect(out.split('\n').slice(0, 2)).toEqual([
-      'sitemap 2026-11-01T00:00:00.000Z https://example.com/sitemaps/products-1.xml.gz',
-      'page    -                        https://example.com/books/the-night-garden',
+      'sitemap       2026-11-01T00:00:00.000Z https://example.com/sitemaps/products-1.xml.gz',
+      'page          -                        https://example.com/books/the-night-garden',
     ])
+  })
+
+  it('fits sitemap_index in the type column, so the urls stay in line', () => {
+    const res = mapResponse()
+    res.links.unshift({
+      url: 'https://example.com/sitemap_index.xml',
+      type: 'sitemap_index',
+      lastmod: null,
+    })
+    const lines = renderMapText(res, { showTypes: true }).split('\n').slice(0, 3)
+    expect(lines[0]).toBe(
+      'sitemap_index -                        https://example.com/sitemap_index.xml'
+    )
+    // every url starts in the same column
+    expect(new Set(lines.map(line => line.indexOf('https://')))).toEqual(new Set([39]))
   })
 
   it('prints no unread block when every file was read', () => {
@@ -370,7 +385,7 @@ describe('renderMapText', () => {
       },
     } as unknown as CliMapResponse
     expect(renderMapText(old, { showTypes: true })).toBe(
-      '-       -                        https://example.com/a'
+      '-             -                        https://example.com/a'
     )
   })
 })
@@ -453,7 +468,7 @@ describe('runMap — the new map fields on the wire', () => {
     await runMap('https://example.com', { apiKey: 'cwbl_test', entries: 'all', text: true })
 
     expect(String(writeSpy.mock.calls[0]?.[0])).toMatch(
-      /^page {4}2026-11-03T09:12:00\.000Z https:\/\/example\.com\/a\nsitemap - {24}https:\/\/example\.com\/sitemap-blog\.xml\n/
+      /^page {10}2026-11-03T09:12:00\.000Z https:\/\/example\.com\/a\nsitemap {7}- {24}https:\/\/example\.com\/sitemap-blog\.xml\n/
     )
   })
 

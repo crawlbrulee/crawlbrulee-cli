@@ -2,7 +2,7 @@ import type {
   AsyncScrapeRequest,
   MapEntries,
   MapLinkItem,
-  MapLinkType,
+  MapLinkType as SdkMapLinkType,
   MapRequest,
   MapResponse,
   MapTruncation,
@@ -24,7 +24,14 @@ import type {
  * and remove this file.
  */
 
-export type { MapEntries, MapLinkType, PdfLayout, PdfMedia, PdfPaper, PdfRequest, PdfResult }
+export type { MapEntries, PdfLayout, PdfMedia, PdfPaper, PdfRequest, PdfResult }
+
+/**
+ * What a map link is: `page`, `sitemap` or `sitemap_index`. The sdk floor
+ * (1.5.0) types only `page | sitemap`. Later: use the sdk's `MapLinkType` once
+ * it has `sitemap_index`.
+ */
+export type MapLinkType = SdkMapLinkType | 'sitemap_index'
 
 export type ColorScheme = ScreenshotColorScheme
 
@@ -56,7 +63,7 @@ export type CliMapRequest = MapRequest & {
 }
 
 /** A map link: every link carries `type` and `lastmod`. */
-export type CliMapLinkItem = MapLinkItem & {
+export type CliMapLinkItem = Omit<MapLinkItem, 'type'> & {
   type: MapLinkType
   /** The sitemap's date for the entry, in UTC, or null when it gives none. */
   lastmod: string | null

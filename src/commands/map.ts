@@ -30,15 +30,20 @@ export interface MapOptions extends CommonOptions {
 /** Shown under `--help` for `map`: mapping a very large site in several calls. */
 const MAP_HELP = `
 a very large site, in several calls:
-  1. list its top sitemap files:
-       crawlbrulee map https://example.com --depth 0 --entries sitemaps
-  2. read each one:
+  1. list its top sitemap files and every file they list:
+       crawlbrulee map https://example.com --depth 1 --entries sitemaps --json
+  2. read each link of type sitemap, plus each sitemap_index link that is
+     also in .response_meta.truncation.unread_sitemaps (an index this map
+     read only in part):
        crawlbrulee map https://example.com --sitemap-url <file>
-  the text output ends with the sitemap files a call did not read whole: try
-  each one next with --sitemap-url. a sitemap index holds only sitemap files, so
-  reading one at a low --depth with --entries pages (the default) returns no
-  pages: use --entries sitemaps or a higher --depth. with --entries all, each
-  line is <type> <lastmod> <url>. the full walk-through:
+  the files of an index read whole are already in your list. a listed file
+  shows as sitemap until a map opens it, even when it is a sitemap index
+  itself; reading it then follows its own files,
+  and its own unread_sitemaps (in text output, the lines at the end) are the
+  files to read next. a sitemap index holds only sitemap files, so reading
+  one at a low --depth with --entries pages (the default) returns no pages:
+  use --entries sitemaps or a higher --depth. with --entries all, each line
+  is <type> <lastmod> <url>. the full walk-through:
   https://crawlbrulee.com/docs/map/sitemaps#map-a-very-large-or-deep-site-in-several-calls`
 
 export function registerMapCommand(program: Command): void {
@@ -62,12 +67,12 @@ export function registerMapCommand(program: Command): void {
     )
     .option(
       '--depth <n>',
-      "levels of nested sitemaps to follow: 0 to 3 (default 3). 0 without --sitemap-url lists the site's top sitemap files without reading them"
+      "levels of nested sitemaps to follow: 0 to 3 (default 3). 0 without --sitemap-url lists the site's top sitemap files without reading their entries; 1 with --entries sitemaps lists them and every file they list"
     )
     .option('--entries <kind>', 'what to return: pages | sitemaps | all (default pages)')
     .option(
       '--modified-since <date>',
-      'only entries whose lastmod is at or after this date (2026-11-01, or an ISO 8601 date and time with a time zone); never served from the cache'
+      'only entries whose own lastmod is at or after this date (2026-11-01, or an ISO 8601 date and time with a time zone); every sitemap file is still read; never served from the cache'
     )
     .option('--sitemap-only', 'use the sitemaps only: leave out the links found on the home page')
     .option('--internal-only', 'only same-domain links')
@@ -76,7 +81,7 @@ export function registerMapCommand(program: Command): void {
 
     .option(
       '--proxy <tier>',
-      'proxy tier: basic | advanced | auto (default: auto — tries basic tier first, escalates to advanced on failure)'
+      'proxy tier: basic | advanced | auto (default: auto, which moves to a stronger proxy on its own when a site needs it)'
     )
     .option('--cache-max-age <seconds>', 'cache max age in seconds')
     .option(

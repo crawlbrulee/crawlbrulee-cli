@@ -4,6 +4,13 @@ all notable changes to the `crawlbrulee` cli are documented here.
 
 this project follows [Semantic Versioning](https://semver.org). breaking changes — renamed or removed commands and flags — land in major releases.
 
+## unreleased
+
+### changed
+
+- **`map` knows the `sitemap_index` link type.** a sitemap file the map found to be a sitemap index now shows as `sitemap_index`. with `--entries all`, the type column in text output is wider to fit it, and the urls still start in one column. `--help` and the readme show the several-calls walk-through with `--depth 1 --entries sitemaps`.
+- **`--proxy` and `--require-js` help.** `auto`, the default, steps up on its own when a site needs more: a stronger proxy, a real browser, or both. `--require-js` goes straight to a browser; without it, a page that needs one still gets one. text only, no change to the flags.
+
 ## 5.5.0 (2026-11-18)
 
 ### added

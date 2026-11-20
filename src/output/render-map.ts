@@ -1,8 +1,8 @@
 import type { CliMapLinkItem, CliMapResponse } from '../sdk-pending.js'
 import { mapUsageLine } from './usage.js'
 
-// `sitemap` is the longest link type; a lastmod is an ISO 8601 time in UTC.
-const TYPE_WIDTH = 'sitemap'.length
+// `sitemap_index` is the longest link type; a lastmod is an ISO 8601 time in UTC.
+const TYPE_WIDTH = 'sitemap_index'.length
 const LASTMOD_WIDTH = '2026-01-01T00:00:00.000Z'.length
 
 export interface MapTextOptions {
